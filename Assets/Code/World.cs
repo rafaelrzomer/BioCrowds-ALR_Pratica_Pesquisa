@@ -144,7 +144,7 @@ namespace Biocrowds.Core
 
             //build the navmesh at runtime
             //NavMeshBuilder.BuildNavMesh();
-            UnityEditor.AI.NavMeshBuilder.BuildNavMesh();
+            // UnityEditor.AI.NavMeshBuilder.BuildNavMesh();
 
 
             //create all cells based on dimension

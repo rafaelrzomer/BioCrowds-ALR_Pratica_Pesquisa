@@ -37,7 +37,7 @@ namespace Biocrowds.Core
         private int goalIndex = 0;
         public bool removeWhenGoalReached;
 
-        public float goalDistThreshold = 1.0f;
+        public float goalDistThreshold = 30.0f;
 
         //list with all auxins in his personal space
         [SerializeField]
