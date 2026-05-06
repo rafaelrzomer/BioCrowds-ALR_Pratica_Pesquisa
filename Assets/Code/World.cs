@@ -346,6 +346,9 @@ namespace Biocrowds.Core
             for (int i = 0; i < _agents.Count; i++)
                 _agents[i].FindNearbyGroupMembers(_agents);
 
+            // update group leaders (agent with highest dominance in each group)
+            UpdateGroupLeaders();
+
             for (int i = 0; i < _agents.Count; i++)
                 _agents[i].auxinCount = _agents[i].Auxins.Count;
             /*
@@ -483,6 +486,48 @@ namespace Biocrowds.Core
         {
             foreach (Cell _c in Cells)
                 _c.ShowMesh(p_enable);
+        }
+
+        private void UpdateGroupLeaders()
+        {
+            // reset all leaders
+            foreach (Agent agent in _agents)
+            {
+                agent.isGroupLeader = false;
+            }
+
+            // group agents by groupId
+            var groups = new Dictionary<int, List<Agent>>();
+            foreach (Agent agent in _agents)
+            {
+                if (agent.HasGroup)
+                {
+                    if (!groups.ContainsKey(agent.groupId))
+                        groups[agent.groupId] = new List<Agent>();
+                    groups[agent.groupId].Add(agent);
+                }
+            }
+
+            // for each group, find the agent with highest dominance
+            foreach (var group in groups)
+            {
+                Agent leader = null;
+                float maxDominance = -1f;
+
+                foreach (Agent agent in group.Value)
+                {
+                    if (agent.dominance > maxDominance)
+                    {
+                        maxDominance = agent.dominance;
+                        leader = agent;
+                    }
+                }
+
+                if (leader != null)
+                {
+                    leader.isGroupLeader = true;
+                }
+            }
         }
     }
 }

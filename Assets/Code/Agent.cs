@@ -40,6 +40,9 @@ namespace Biocrowds.Core
         [Range(0f, 1f)]
         public float groupCohesionStrength = 0.5f;
 
+        // is this agent the leader of its group?
+        public bool isGroupLeader = false;
+
         //goal
         public GameObject Goal;
         // Multiple goals
@@ -260,25 +263,21 @@ namespace Biocrowds.Core
                 _rotation += valorW * _distAuxin[k] * _maxSpeed;
             }
 
-            // add group cohesion force - follow nearby group members
-            if (HasGroup && _nearbyGroupMembers.Count > 0)
+            // add group cohesion force - follow the group leader
+            if (HasGroup && !isGroupLeader && _nearbyGroupMembers.Count > 0)
             {
-                // find the group member closest to the goal direction
+                // find the group leader among nearby members
                 Agent leader = null;
-                float bestAlignment = -1f;
-
                 foreach (Agent groupMember in _nearbyGroupMembers)
                 {
-                    Vector3 toMember = (groupMember.transform.position - transform.position).normalized;
-                    float alignment = Vector3.Dot(_dirAgentGoal.normalized, toMember);
-
-                    if (alignment > bestAlignment)
+                    if (groupMember.isGroupLeader)
                     {
-                        bestAlignment = alignment;
                         leader = groupMember;
+                        break;
                     }
                 }
 
+                // if leader is nearby, follow them
                 if (leader != null)
                 {
                     Vector3 followDirection = (leader.transform.position - transform.position).normalized;
@@ -497,7 +496,9 @@ namespace Biocrowds.Core
                 if (otherAgent.groupId != groupId) continue;
 
                 float distanceSqr = (transform.position - otherAgent.transform.position).sqrMagnitude;
-                if (distanceSqr <= agentRadius * agentRadius * 4f) // check within 2x agent radius
+                float detectionRadius = otherAgent.isGroupLeader ? agentRadius * agentRadius * 9f : agentRadius * agentRadius * 4f; // leaders can be followed from farther away
+
+                if (distanceSqr <= detectionRadius)
                 {
                     _nearbyGroupMembers.Add(otherAgent);
                 }
