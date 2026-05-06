@@ -260,18 +260,36 @@ namespace Biocrowds.Core
                 _rotation += valorW * _distAuxin[k] * _maxSpeed;
             }
 
-            // add group cohesion force
+            // add group cohesion force - follow nearby group members
             if (HasGroup && _nearbyGroupMembers.Count > 0)
             {
-                Vector3 groupCenter = Vector3.zero;
+                // find the group member closest to the goal direction
+                Agent leader = null;
+                float bestAlignment = -1f;
+
                 foreach (Agent groupMember in _nearbyGroupMembers)
                 {
-                    groupCenter += groupMember.transform.position;
-                }
-                groupCenter /= _nearbyGroupMembers.Count;
+                    Vector3 toMember = (groupMember.transform.position - transform.position).normalized;
+                    float alignment = Vector3.Dot(_dirAgentGoal.normalized, toMember);
 
-                Vector3 cohesionDirection = (groupCenter - transform.position).normalized;
-                _rotation += groupCohesionStrength * cohesionDirection * _maxSpeed;
+                    if (alignment > bestAlignment)
+                    {
+                        bestAlignment = alignment;
+                        leader = groupMember;
+                    }
+                }
+
+                if (leader != null)
+                {
+                    Vector3 followDirection = (leader.transform.position - transform.position).normalized;
+                    float distanceToLeader = Vector3.Distance(transform.position, leader.transform.position);
+
+                    // only follow if not too close (avoid overlapping)
+                    if (distanceToLeader > agentRadius * 0.8f)
+                    {
+                        _rotation += groupCohesionStrength * followDirection * _maxSpeed;
+                    }
+                }
             }
         }
 
