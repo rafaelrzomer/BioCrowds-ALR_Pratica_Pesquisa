@@ -40,10 +40,6 @@ namespace Biocrowds.Core
         [Range(0f, 1f)]
         public float groupCohesionStrength = 0.5f;
 
-        // group separation strength (to avoid overcrowding)
-        [Range(0f, 1f)]
-        public float groupSeparationStrength = 0.5f;
-
         // is this agent the leader of its group?
         public bool isGroupLeader = false;
 
@@ -294,30 +290,6 @@ namespace Biocrowds.Core
                     }
                 }
             }
-
-            // add group separation force - avoid overcrowding with group members
-            if (HasGroup && _nearbyGroupMembers.Count > 0)
-            {
-                Vector3 separationForce = Vector3.zero;
-                int separationCount = 0;
-
-                foreach (Agent groupMember in _nearbyGroupMembers)
-                {
-                    float distance = Vector3.Distance(transform.position, groupMember.transform.position);
-                    if (distance < agentRadius * 1.2f && distance > 0.01f) // within 1.2x radius but not overlapping
-                    {
-                        Vector3 awayDirection = (transform.position - groupMember.transform.position).normalized;
-                        separationForce += awayDirection / distance; // stronger when closer
-                        separationCount++;
-                    }
-                }
-
-                if (separationCount > 0)
-                {
-                    separationForce /= separationCount; // average the forces
-                    _rotation += groupSeparationStrength * separationForce.normalized * _maxSpeed;
-                }
-            }
         }
 
         //calculate W
@@ -524,7 +496,7 @@ namespace Biocrowds.Core
                 if (otherAgent.groupId != groupId) continue;
 
                 float distanceSqr = (transform.position - otherAgent.transform.position).sqrMagnitude;
-                float detectionRadius = otherAgent.isGroupLeader ? agentRadius * agentRadius * 9f : agentRadius * agentRadius * 6f; // increased for better separation
+                float detectionRadius = otherAgent.isGroupLeader ? agentRadius * agentRadius * 9f : agentRadius * agentRadius * 4f; // leaders can be followed from farther away
 
                 if (distanceSqr <= detectionRadius)
                 {
