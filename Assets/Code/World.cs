@@ -342,6 +342,10 @@ namespace Biocrowds.Core
             for (int i = 0; i < _agents.Count; i++)
                 _agents[i].FindNearAuxins();
 
+            //find nearby group members for each agent
+            for (int i = 0; i < _agents.Count; i++)
+                _agents[i].FindNearbyGroupMembers(_agents);
+
             for (int i = 0; i < _agents.Count; i++)
                 _agents[i].auxinCount = _agents[i].Auxins.Count;
             /*
@@ -459,6 +463,7 @@ namespace Biocrowds.Core
                 newAgent.removeWhenGoalReached = _area.repeatingRemoveWhenGoalReached;
                 newAgent.goalsWaitList = _area.repeatingWaitList;
             }
+            newAgent.groupId = _area.groupId;
             newAgent.World = this;
             _agents.Add(newAgent);
         }

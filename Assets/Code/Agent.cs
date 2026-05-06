@@ -24,6 +24,22 @@ namespace Biocrowds.Core
         [SerializeField]
         private float _maxSpeed = 1.5f;
 
+        //dominance parameter
+        [Range(0f, 1f)]
+        public float dominance = 1.0f;
+
+        // affinity parameter: agents with closer values are more compatible
+        [Range(0f, 1f)]
+        public float affinity = 0f;
+
+        // group membership: -1 means no group
+        public int groupId = -1;
+        public bool HasGroup => groupId >= 0;
+
+        // group cohesion strength
+        [Range(0f, 1f)]
+        public float groupCohesionStrength = 0.5f;
+
         //goal
         public GameObject Goal;
         // Multiple goals
@@ -76,6 +92,9 @@ namespace Biocrowds.Core
         //auxins distance vector from agent
         public List<Vector3> _distAuxin;
 
+        // group cohesion: list of nearby group members
+        public List<Agent> _nearbyGroupMembers = new List<Agent>();
+
         /*-----------Paravisis' model-----------*/
         private bool _isDenW = false; //  avoid recalculation
         private float _denW;    //  avoid recalculation
@@ -89,7 +108,10 @@ namespace Biocrowds.Core
         {
             _navMeshPath = new NavMeshPath();
             if (_visualAgent == null) _visualAgent = GetComponentInChildren<VisualAgent>();
-           
+
+            // assign random dominance and affinity at start
+            dominance = Random.Range(0f, 1f);
+            affinity = Random.Range(0f, 1f);
 
             _goalPosition = Goal.transform.position;
             _dirAgentGoal = _goalPosition - transform.position;
@@ -173,6 +195,7 @@ namespace Biocrowds.Core
             //re-set inicial values
             _denW = 0;
             _distAuxin.Clear();
+            _nearbyGroupMembers.Clear();
             _isDenW = false;
             _rotation = new Vector3(0f, 0f, 0f);
             _dirAgentGoal = _goalPosition - transform.position;
@@ -235,6 +258,20 @@ namespace Biocrowds.Core
 
                 //sum the resulting vector * weight (Wk*Dk)
                 _rotation += valorW * _distAuxin[k] * _maxSpeed;
+            }
+
+            // add group cohesion force
+            if (HasGroup && _nearbyGroupMembers.Count > 0)
+            {
+                Vector3 groupCenter = Vector3.zero;
+                foreach (Agent groupMember in _nearbyGroupMembers)
+                {
+                    groupCenter += groupMember.transform.position;
+                }
+                groupCenter /= _nearbyGroupMembers.Count;
+
+                Vector3 cohesionDirection = (groupCenter - transform.position).normalized;
+                _rotation += groupCohesionStrength * cohesionDirection * _maxSpeed;
             }
         }
 
@@ -427,6 +464,26 @@ namespace Biocrowds.Core
             Vector2 goalPos = new Vector2(goalsList[goalsList.Count - 1].transform.position.x,
                 goalsList[goalsList.Count - 1].transform.position.z);
             return (Vector2.Distance(agentPos, goalPos) <= goalDistThreshold);
+        }
+
+        //find nearby agents from the same group
+        public void FindNearbyGroupMembers(List<Agent> allAgents)
+        {
+            if (!HasGroup) return;
+
+            _nearbyGroupMembers.Clear();
+
+            foreach (Agent otherAgent in allAgents)
+            {
+                if (otherAgent == this) continue;
+                if (otherAgent.groupId != groupId) continue;
+
+                float distanceSqr = (transform.position - otherAgent.transform.position).sqrMagnitude;
+                if (distanceSqr <= agentRadius * agentRadius * 4f) // check within 2x agent radius
+                {
+                    _nearbyGroupMembers.Add(otherAgent);
+                }
+            }
         }
     }
 }
