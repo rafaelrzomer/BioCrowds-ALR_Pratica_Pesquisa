@@ -38,7 +38,7 @@ namespace Biocrowds.Core
 
         // group cohesion strength
         [Range(0f, 1f)]
-        public float groupCohesionStrength = 0.5f;
+        public float groupCohesionStrength = 0.3f;
 
         // is this agent the leader of its group?
         public bool isGroupLeader = false;
@@ -283,8 +283,8 @@ namespace Biocrowds.Core
                     Vector3 followDirection = (leader.transform.position - transform.position).normalized;
                     float distanceToLeader = Vector3.Distance(transform.position, leader.transform.position);
 
-                    // only follow if not too close (avoid overlapping)
-                    if (distanceToLeader > agentRadius * 0.8f)
+                    // only follow if at a comfortable distance (avoid overcrowding)
+                    if (distanceToLeader > agentRadius * 1.5f)
                     {
                         _rotation += groupCohesionStrength * followDirection * _maxSpeed;
                     }
@@ -496,7 +496,7 @@ namespace Biocrowds.Core
                 if (otherAgent.groupId != groupId) continue;
 
                 float distanceSqr = (transform.position - otherAgent.transform.position).sqrMagnitude;
-                float detectionRadius = otherAgent.isGroupLeader ? agentRadius * agentRadius * 9f : agentRadius * agentRadius * 4f; // leaders can be followed from farther away
+                float detectionRadius = otherAgent.isGroupLeader ? agentRadius * agentRadius * 16f : agentRadius * agentRadius * 9f; // increased for better group spacing
 
                 if (distanceSqr <= detectionRadius)
                 {
