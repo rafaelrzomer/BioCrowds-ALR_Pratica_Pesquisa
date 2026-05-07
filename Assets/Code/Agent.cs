@@ -28,6 +28,14 @@ namespace Biocrowds.Core
         [Range(0f, 1f)]
         public float dominance = 1.0f;
 
+        // raio de percepção para detectar grupos vizinhos
+        [Range(0f, 20f)]
+        public float groupSwitchRadius = 5f;
+
+        // diferença mínima de afinidade para justificar a troca (evita troca constante)
+        [Range(0f, 0.5f)]
+        public float affinityThreshold = 0.1f;
+
         // affinity parameter: agents with closer values are more compatible
         [Range(0f, 1f)]
         public float affinity = 0f;

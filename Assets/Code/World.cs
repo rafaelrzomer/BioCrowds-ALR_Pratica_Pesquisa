@@ -13,6 +13,8 @@ using System.Collections;
 using UnityEngine.AI;
 using System.Linq;
 
+private Dictionary<int, float> _groupAffinityAverages = new Dictionary<int, float>();
+
 namespace Biocrowds.Core
 {
     public class World : MonoBehaviour
@@ -151,7 +153,7 @@ namespace Biocrowds.Core
             yield return StartCoroutine(CreateCells());
 
             yield return StartCoroutine(_markerSpawner.CreateMarkers(_cells, _auxins));
-            Debug.Log(_auxins.Count/_cells.Count);
+            Debug.Log(_auxins.Count / _cells.Count);
 
             //populate cells with auxins
             //yield return StartCoroutine(DartThrowing());
@@ -206,7 +208,7 @@ namespace Biocrowds.Core
             densityToQnt *= 2f / (2.0f * AUXIN_RADIUS);
             densityToQnt *= 2f / (2.0f * AUXIN_RADIUS);
 
-            
+
             int _maxAuxins = (int)Mathf.Floor(densityToQnt);
 
             //for each cell, we generate its auxins
@@ -293,11 +295,11 @@ namespace Biocrowds.Core
         private IEnumerator CreateAgents()
         {
             _agentsContainer = new GameObject("Agents").transform;
-          
+
             //instantiate agents
             foreach (SpawnArea _area in spawnAreas)
             {
-                for (int i = 0; i < _area.initialNumberOfAgents; i ++)
+                for (int i = 0; i < _area.initialNumberOfAgents; i++)
                 {
                     if (MAX_AGENTS == 0 || _agents.Count < MAX_AGENTS)
                         SpawnNewAgentInArea(_area, true);
@@ -336,7 +338,7 @@ namespace Biocrowds.Core
                 for (int j = 0; j < _cells[i].Auxins.Count; j++)
                     _cells[i].Auxins[j].ResetAuxin();
 
-           
+
 
             //find nearest auxins for each agent
             for (int i = 0; i < _agents.Count; i++)
@@ -347,6 +349,8 @@ namespace Biocrowds.Core
                 _agents[i].FindNearbyGroupMembers(_agents);
 
             // update group leaders (agent with highest dominance in each group)
+            ComputeGroupAffinityAverages();
+            UpdateGroupMembership();
             UpdateGroupLeaders();
 
             for (int i = 0; i < _agents.Count; i++)
@@ -398,7 +402,7 @@ namespace Biocrowds.Core
                     _agentsToRemove.Add(_agents[i]);
             }
 
-            foreach(Agent a in _agentsToRemove)
+            foreach (Agent a in _agentsToRemove)
             {
                 _agents.Remove(a);
                 Destroy(a.gameObject);
@@ -409,14 +413,14 @@ namespace Biocrowds.Core
             for (int i = 0; i < _agents.Count; i++)
                 _agents[i].NavmeshStep(SIMULATION_TIME_STEP);
 
-            
+
         }
 
-        private Cell GetClosestCellToPoint (Vector3 point)
+        private Cell GetClosestCellToPoint(Vector3 point)
         {
             float _minDist = Vector3.Distance(point, _cells[0].transform.position);
             int _minIndex = 0;
-            for (int i = 1; i < _cells.Count; i ++)
+            for (int i = 1; i < _cells.Count; i++)
             {
                 if (Vector3.Distance(point, _cells[i].transform.position) < _minDist)
                 {
@@ -428,7 +432,33 @@ namespace Biocrowds.Core
             return _cells[_minIndex];
         }
 
-        private void SpawnNewAgent(Vector3 _pos, bool _removeWhenGoalReached, 
+        private void ComputeGroupAffinityAverages()
+        {
+            //Coletar afinidade por grupo
+            Dictionary<int, List<float>> groupAffinities = new Dictionary<int, List<float>>();
+                
+            foreach (Agent agent in _agents)
+            {
+                if (agent.HasGroup)
+                {
+                    if (!groupAffinities.ContainsKey(agent.groupId))
+                        groupAffinities[agent.groupId] = new List<float>();
+                    groupAffinities[agent.groupId].Add(agent.affinity);
+                }
+
+                //Calcular a média de cada grupo
+                _groupAffinityAverges.Clear();
+                foreach (var kvp in groupAffinities)
+                {
+                    float sum = 0f;
+                    foreach (float val in kvp.value) sum += val;
+                    _groupAffinityAverages[kvp.Key] = sum / kvp.Value.Count;
+                }
+            }
+
+        }
+
+        private void SpawnNewAgent(Vector3 _pos, bool _removeWhenGoalReached,
             List<GameObject> _goalList)
         {
             Agent newAgent = Instantiate(_agentPrefabList[Random.Range(0, _agentPrefabList.Count)],
@@ -446,7 +476,7 @@ namespace Biocrowds.Core
         private void SpawnNewAgentInArea(SpawnArea _area, bool _isInitialSpawn)
         {
             Vector3 _pos = _area.GetRandomPoint();
-            Agent newAgent = Instantiate(_agentPrefabList[Random.Range(0, _agentPrefabList.Count)], 
+            Agent newAgent = Instantiate(_agentPrefabList[Random.Range(0, _agentPrefabList.Count)],
                 _pos, Quaternion.identity, _agentsContainer);
             newAgent.name = "Agent [" + GetNewAgentID() + "]";  //name
             newAgent.CurrentCell = GetClosestCellToPoint(_pos);
@@ -477,7 +507,7 @@ namespace Biocrowds.Core
             return _newAgentID - 1;
         }
 
-        public void ShowAuxinMeshes (bool p_enable)
+        public void ShowAuxinMeshes(bool p_enable)
         {
             foreach (Auxin _a in Auxins)
                 _a.ShowMesh(p_enable);
@@ -488,6 +518,55 @@ namespace Biocrowds.Core
                 _c.ShowMesh(p_enable);
         }
 
+        private void UpdateGroupMembership()
+{
+    foreach (Agent agent in _agents)
+    {
+        // Diferença de afinidade com o grupo ATUAL
+        // Se não tem grupo, a diferença é infinita (qualquer grupo é melhor)
+        float currentDiff = agent.HasGroup
+        //Se der erro, troque a linha abaixo, por:
+            ? Mathf.Abs(agent.affinity - _groupAffinityAverages.GetValueOrDefault(agent.groupId, agent.affinity))
+        
+        //por isso: (_groupAffinityAverages.ContainsKey(agent.groupId) ? _groupAffinityAverages[agent.groupId] : agent.affinity) 
+
+            : float.MaxValue;
+
+        int bestGroup = agent.groupId; // começa assumindo que o atual é o melhor
+        float bestDiff = currentDiff;
+
+        // Verifica agentes próximos de outros grupos
+        foreach (Agent other in _agents)
+        {
+            if (other == agent) continue;                        // ignora a si mesmo
+            if (!other.HasGroup) continue;                       // ignora outros sem grupo
+            if (other.groupId == agent.groupId) continue;       // ignora mesmo grupo
+
+            float dist = Vector3.Distance(agent.transform.position, other.transform.position);
+            if (dist > agent.groupSwitchRadius) continue;       // fora do raio
+
+            // Diferença entre afinidade do agente e média do grupo vizinho
+            if (_groupAffinityAverages.TryGetValue(other.groupId, out float otherAvg))
+            {
+                float diff = Mathf.Abs(agent.affinity - otherAvg);
+
+                // Só troca se a melhoria for maior que o threshold (evita flicker)
+                if (diff < bestDiff - agent.affinityThreshold)
+                {
+                    bestDiff = diff;
+                    bestGroup = other.groupId;
+                }
+            }
+        }
+
+        // Aplica a troca, se necessário
+        if (bestGroup != agent.groupId)
+        {
+            agent.groupId = bestGroup;
+            agent.isGroupLeader = false; // perde liderança ao trocar de grupo
+        }
+    }
+}
         private void UpdateGroupLeaders()
         {
             // reset all leaders
