@@ -83,6 +83,21 @@ namespace Biocrowds.Core
             set { _world = value; }
         }
 
+        // get the average affinity of the agent's group
+        public float GroupAverageAffinity
+        {
+            get
+            {
+                if (!HasGroup || _world == null)
+                    return affinity; // return individual affinity if not in a group
+                
+                if (_world.GroupAffinityAverages.ContainsKey(groupId))
+                    return _world.GroupAffinityAverages[groupId];
+                
+                return 0f;
+            }
+        }
+
         private int _totalX;
         private int _totalZ;
 
@@ -503,6 +518,19 @@ namespace Biocrowds.Core
                     _nearbyGroupMembers.Add(otherAgent);
                 }
             }
+        }
+
+        /// <summary>
+        /// Switch this agent to a different group
+        /// </summary>
+        public void SwitchGroup(int newGroupId)
+        {
+            if (newGroupId == groupId)
+                return; // already in the target group
+
+            groupId = newGroupId;
+            isGroupLeader = false; // reset leader status when switching groups
+            _nearbyGroupMembers.Clear(); // clear nearby members list
         }
     }
 }

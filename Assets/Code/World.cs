@@ -34,6 +34,10 @@ namespace Biocrowds.Core
 
         [SerializeField] private float GOAL_DISTANCE_THRESHOLD = 1.0f;
 
+        // group interaction settings
+        [SerializeField] private float GROUP_PROXIMITY_DISTANCE = 10.0f;
+        [Range(0f, 1f)]
+        [SerializeField] private float AFFINITY_SWITCH_THRESHOLD = 0.1f; // minimum difference to trigger group switch
 
         [Header("Terrain Setting")]
         public MeshFilter planeMeshFilter;
@@ -93,6 +97,12 @@ namespace Biocrowds.Core
         [SerializeField]
         private MarkerSpawner _markerSpawner = null;
 
+        // group affinity averages: groupId -> average affinity
+        private Dictionary<int, float> _groupAffinityAverages = new Dictionary<int, float>();
+        public Dictionary<int, float> GroupAffinityAverages
+        {
+            get { return _groupAffinityAverages; }
+        }
 
         //max auxins on the ground
         private bool _isReady;
@@ -349,6 +359,12 @@ namespace Biocrowds.Core
             // update group leaders (agent with highest dominance in each group)
             UpdateGroupLeaders();
 
+            // update group affinity averages
+            UpdateGroupAffinities();
+
+            // check for group proximity and potential group switches
+            EvaluateGroupProximityAndSwitches();
+
             for (int i = 0; i < _agents.Count; i++)
                 _agents[i].auxinCount = _agents[i].Auxins.Count;
             /*
@@ -528,6 +544,127 @@ namespace Biocrowds.Core
                     leader.isGroupLeader = true;
                 }
             }
+        }
+
+        private void UpdateGroupAffinities()
+        {
+            // clear previous averages
+            _groupAffinityAverages.Clear();
+
+            // group agents by groupId
+            var groups = new Dictionary<int, List<Agent>>();
+            foreach (Agent agent in _agents)
+            {
+                if (agent.HasGroup)
+                {
+                    if (!groups.ContainsKey(agent.groupId))
+                        groups[agent.groupId] = new List<Agent>();
+                    groups[agent.groupId].Add(agent);
+                }
+            }
+
+            // for each group, calculate the average affinity
+            foreach (var group in groups)
+            {
+                float totalAffinity = 0f;
+                
+                foreach (Agent agent in group.Value)
+                {
+                    totalAffinity += agent.affinity;
+                }
+
+                float averageAffinity = group.Value.Count > 0 ? totalAffinity / group.Value.Count : 0f;
+                _groupAffinityAverages[group.Key] = averageAffinity;
+            }
+        }
+
+        private void EvaluateGroupProximityAndSwitches()
+        {
+            // group agents by groupId
+            var groups = new Dictionary<int, List<Agent>>();
+            foreach (Agent agent in _agents)
+            {
+                if (agent.HasGroup)
+                {
+                    if (!groups.ContainsKey(agent.groupId))
+                        groups[agent.groupId] = new List<Agent>();
+                    groups[agent.groupId].Add(agent);
+                }
+            }
+
+            // check proximity between all pairs of groups
+            var groupList = groups.Values.ToList();
+            for (int i = 0; i < groupList.Count; i++)
+            {
+                for (int j = i + 1; j < groupList.Count; j++)
+                {
+                    if (AreGroupsNearby(groupList[i], groupList[j]))
+                    {
+                        // evaluate potential switches between these two groups
+                        EvaluateGroupSwaps(groupList[i], groupList[j]);
+                    }
+                }
+            }
+        }
+
+        private bool AreGroupsNearby(List<Agent> group1, List<Agent> group2)
+        {
+            // find the minimum distance between any two agents from different groups
+            float minDistance = float.MaxValue;
+
+            foreach (Agent agent1 in group1)
+            {
+                foreach (Agent agent2 in group2)
+                {
+                    float distance = Vector3.Distance(agent1.transform.position, agent2.transform.position);
+                    if (distance < minDistance)
+                        minDistance = distance;
+                }
+            }
+
+            return minDistance <= GROUP_PROXIMITY_DISTANCE;
+        }
+
+        private void EvaluateGroupSwaps(List<Agent> group1, List<Agent> group2)
+        {
+            if (group1.Count == 0 || group2.Count == 0)
+                return;
+
+            int groupId1 = group1[0].groupId;
+            int groupId2 = group2[0].groupId;
+
+            float group1Affinity = _groupAffinityAverages.ContainsKey(groupId1) ? _groupAffinityAverages[groupId1] : 0f;
+            float group2Affinity = _groupAffinityAverages.ContainsKey(groupId2) ? _groupAffinityAverages[groupId2] : 0f;
+
+            // check if agents from group1 should join group2
+            foreach (Agent agent in group1.ToList()) // ToList() to avoid modification during iteration
+            {
+                if (ShouldAgentSwitchGroup(agent, group1Affinity, group2Affinity, groupId2))
+                {
+                    agent.SwitchGroup(groupId2);
+                }
+            }
+
+            // check if agents from group2 should join group1
+            foreach (Agent agent in group2.ToList())
+            {
+                if (ShouldAgentSwitchGroup(agent, group2Affinity, group1Affinity, groupId1))
+                {
+                    agent.SwitchGroup(groupId1);
+                }
+            }
+        }
+
+        private bool ShouldAgentSwitchGroup(Agent agent, float currentGroupAffinity, float newGroupAffinity, int newGroupId)
+        {
+            // calculate difference between agent's affinity and current group
+            float currentDifference = Mathf.Abs(agent.affinity - currentGroupAffinity);
+            
+            // calculate difference between agent's affinity and new group
+            float newDifference = Mathf.Abs(agent.affinity - newGroupAffinity);
+
+            // switch if new group is significantly closer in affinity
+            return (currentDifference - newDifference) >= AFFINITY_SWITCH_THRESHOLD;
         }
     }
 }
