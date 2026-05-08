@@ -47,6 +47,11 @@ namespace Biocrowds.Core
         // Ex: 0.15 significa que o novo grupo precisa ser pelo menos 15% mais compatível.
         [SerializeField] private float AFFINITY_SWITCH_THRESHOLD = 0.15f;
 
+        // Diferença máxima de afinidade para um agente SOZINHO entrar em um grupo.
+        // "Afinidade maior" = diferença menor que este valor.
+        // Ex: 0.2 significa que o agente entra se estiver dentro de 20% de afinidade do grupo.
+        [SerializeField] private float LONE_AGENT_JOIN_THRESHOLD = 0.2f;
+
         // ── TERRENO ────────────────────────────────────────────────────────
 
         [Header("Terrain Setting")]
@@ -250,6 +255,8 @@ namespace Biocrowds.Core
             DetectApproachingGroupPairs();
             // Passos 3 e 4: compara afinidade e troca agentes se necessário
             UpdateGroupMembership();
+            // Agentes sozinhos buscam grupo compatível independente de pares
+            UpdateLoneAgents();
             // Atualiza cor de debug de cada agente
             for (int i = 0; i < _agents.Count; i++)
                 _agents[i].UpdateGroupColor();
@@ -431,20 +438,67 @@ namespace Biocrowds.Core
                             agent.isGroupLeader = false;
                         }
                     }
-                    // Agente sem grupo → entra no grupo com afinidade mais próxima
-                    else if (!agent.HasGroup)
+                    // Agentes sozinhos são tratados pelo método UpdateLoneAgents()
+                }
+            }
+        }
+
+        /// <summary>
+        /// Percorre todos os agentes SEM grupo e verifica se há algum grupo
+        /// próximo o suficiente (dentro de GROUP_DETECTION_RADIUS) com afinidade
+        /// compatível.
+        ///
+        /// Lógica:
+        ///   1. Para cada agente sozinho, busca todos os grupos dentro do raio
+        ///   2. Calcula a diferença de afinidade com cada grupo encontrado
+        ///   3. Guarda o grupo com a MENOR diferença (mais compatível)
+        ///   4. Se essa diferença ≤ LONE_AGENT_JOIN_THRESHOLD → agente entra no grupo
+        ///      ("afinidade maior" = diferença menor = mais compatível)
+        /// </summary>
+        private void UpdateLoneAgents()
+        {
+            foreach (Agent agent in _agents)
+            {
+                // Ignora agentes que já têm grupo
+                if (agent.HasGroup) continue;
+
+                int   bestGroup = -1;
+                float bestDiff  = float.MaxValue;
+
+                // Percorre todos os grupos existentes
+                foreach (var kvp in _groupCentroids)
+                {
+                    int   gid         = kvp.Key;
+                    float distToGroup = Vector3.Distance(
+                        agent.transform.position, kvp.Value
+                    );
+
+                    // Passo 2: só considera grupos dentro do raio de detecção
+                    if (distToGroup > GROUP_DETECTION_RADIUS) continue;
+
+                    // Passo 3: calcula diferença de afinidade com este grupo
+                    if (!_groupAffinityAverages.TryGetValue(gid, out float avg)) continue;
+
+                    float diff = Mathf.Abs(agent.affinity - avg);
+
+                    // Guarda o mais compatível (menor diferença)
+                    if (diff < bestDiff)
                     {
-                        if (diffWithA <= diffWithB && diffWithA < AFFINITY_SWITCH_THRESHOLD)
-                        {
-                            Debug.Log($"[Grupo] {agent.name} (sem grupo) → entrou no grupo {groupA}");
-                            agent.groupId = groupA;
-                        }
-                        else if (diffWithB < diffWithA && diffWithB < AFFINITY_SWITCH_THRESHOLD)
-                        {
-                            Debug.Log($"[Grupo] {agent.name} (sem grupo) → entrou no grupo {groupB}");
-                            agent.groupId = groupB;
-                        }
+                        bestDiff  = diff;
+                        bestGroup = gid;
                     }
+                }
+
+                // Passo 4: entra no grupo se a compatibilidade for alta o suficiente
+                if (bestGroup != -1 && bestDiff <= LONE_AGENT_JOIN_THRESHOLD)
+                {
+                    Debug.Log($"[Sozinho] {agent.name} " +
+                              $"(afinidade: {agent.affinity:F2}) " +
+                              $"→ entrou no grupo {bestGroup} " +
+                              $"(média do grupo: {_groupAffinityAverages[bestGroup]:F2}, " +
+                              $"diferença: {bestDiff:F2})");
+
+                    agent.groupId = bestGroup;
                 }
             }
         }
