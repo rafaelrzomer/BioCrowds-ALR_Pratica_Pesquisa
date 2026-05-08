@@ -22,15 +22,15 @@ public class SpawnArea : MonoBehaviour
     private float cycleCounter = 0.0f;
     private bool cycleReady = false;
 
+    [Header("Spawn Area Group")]
+    public int groupId = -1; // -1 = agentes sem grupo
 
-    public bool CycleReady { get => cycleReady;  }
+    public bool CycleReady { get => cycleReady; }
 
     private void Awake()
     {
-        if (_collider == null)
-            _collider = GetComponent<Collider>();
-        if (_meshRenderer == null)
-            _meshRenderer = GetComponent<MeshRenderer>();
+        _collider ??= GetComponent<Collider>();
+        _meshRenderer ??= GetComponent<MeshRenderer>();
 
         cycleCounter = 0.0f;
         cycleReady = false;
