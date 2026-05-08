@@ -24,6 +24,33 @@ namespace Biocrowds.Core
         [SerializeField]
         private float _maxSpeed = 1.5f;
 
+        //dominance parameter
+        [Range(0f, 1f)]
+        public float dominance = 1.0f;
+
+        // raio de percepção para detectar grupos vizinhos
+        [Range(0f, 20f)]
+        public float groupSwitchRadius = 5f;
+
+        // diferença mínima de afinidade para justificar a troca (evita troca constante)
+        [Range(0f, 0.5f)]
+        public float affinityThreshold = 0.1f;
+
+        // affinity parameter: agents with closer values are more compatible
+        [Range(0f, 1f)]
+        public float affinity = 0f;
+
+        // group membership: -1 means no group
+        public int groupId = -1;
+        public bool HasGroup => groupId >= 0;
+
+        // group cohesion strength
+        [Range(0f, 1f)]
+        public float groupCohesionStrength = 0.3f;
+
+        // is this agent the leader of its group?
+        public bool isGroupLeader = false;
+
         //goal
         public GameObject Goal;
         // Multiple goals
@@ -37,7 +64,7 @@ namespace Biocrowds.Core
         private int goalIndex = 0;
         public bool removeWhenGoalReached;
 
-        public float goalDistThreshold = 1.0f;
+        public float goalDistThreshold = 30.0f;
 
         //list with all auxins in his personal space
         [SerializeField]
@@ -76,6 +103,9 @@ namespace Biocrowds.Core
         //auxins distance vector from agent
         public List<Vector3> _distAuxin;
 
+        // group cohesion: list of nearby group members
+        public List<Agent> _nearbyGroupMembers = new List<Agent>();
+
         /*-----------Paravisis' model-----------*/
         private bool _isDenW = false; //  avoid recalculation
         private float _denW;    //  avoid recalculation
@@ -89,7 +119,10 @@ namespace Biocrowds.Core
         {
             _navMeshPath = new NavMeshPath();
             if (_visualAgent == null) _visualAgent = GetComponentInChildren<VisualAgent>();
-           
+
+            // assign random dominance and affinity at start
+            dominance = Random.Range(0f, 1f);
+            affinity = Random.Range(0f, 1f);
 
             _goalPosition = Goal.transform.position;
             _dirAgentGoal = _goalPosition - transform.position;
@@ -103,7 +136,7 @@ namespace Biocrowds.Core
         {
             //clear agent´s information
             ClearAgent();
-            
+
             // Update the way to the goal every second.
             _elapsedTime += _timeStep;
 
@@ -117,6 +150,25 @@ namespace Biocrowds.Core
             {
                 for (int i = 0; i < _navMeshPath.corners.Length - 1; i++)
                     Debug.DrawLine(_navMeshPath.corners[i], _navMeshPath.corners[i + 1], Color.red);
+            }
+        }
+
+        void Update()
+        {
+            // DEBUG: colorir por grupo
+            Renderer rend = GetComponentInChildren<Renderer>();
+            if (rend != null)
+            {
+                if (!HasGroup)
+                    rend.material.color = Color.white;        // sem grupo = branco
+                else if (groupId == 0)
+                    rend.material.color = Color.red;          // grupo 0 = vermelho
+                else if (groupId == 1)
+                    rend.material.color = Color.blue;         // grupo 1 = azul
+                else if (groupId == 2)
+                    rend.material.color = Color.green;        // grupo 2 = verde
+                else
+                    rend.material.color = Color.yellow;       // outros = amarelo
             }
         }
 
@@ -173,6 +225,7 @@ namespace Biocrowds.Core
             //re-set inicial values
             _denW = 0;
             _distAuxin.Clear();
+            _nearbyGroupMembers.Clear();
             _isDenW = false;
             _rotation = new Vector3(0f, 0f, 0f);
             _dirAgentGoal = _goalPosition - transform.position;
@@ -235,6 +288,34 @@ namespace Biocrowds.Core
 
                 //sum the resulting vector * weight (Wk*Dk)
                 _rotation += valorW * _distAuxin[k] * _maxSpeed;
+            }
+
+            // add group cohesion force - follow the group leader
+            if (HasGroup && !isGroupLeader && _nearbyGroupMembers.Count > 0)
+            {
+                // find the group leader among nearby members
+                Agent leader = null;
+                foreach (Agent groupMember in _nearbyGroupMembers)
+                {
+                    if (groupMember.isGroupLeader)
+                    {
+                        leader = groupMember;
+                        break;
+                    }
+                }
+
+                // if leader is nearby, follow them
+                if (leader != null)
+                {
+                    Vector3 followDirection = (leader.transform.position - transform.position).normalized;
+                    float distanceToLeader = Vector3.Distance(transform.position, leader.transform.position);
+
+                    // only follow if at a comfortable distance (avoid overcrowding)
+                    if (distanceToLeader > agentRadius * 1.5f)
+                    {
+                        _rotation += groupCohesionStrength * followDirection * _maxSpeed;
+                    }
+                }
             }
         }
 
@@ -404,7 +485,7 @@ namespace Biocrowds.Core
             }
 
             //see distance to this cell
-            float distanceToNeighbourCell = (transform.position - pCell.transform.position).sqrMagnitude; 
+            float distanceToNeighbourCell = (transform.position - pCell.transform.position).sqrMagnitude;
             if (distanceToNeighbourCell < pDistToCellSqr)
             {
                 pDistToCellSqr = distanceToNeighbourCell;
@@ -427,6 +508,28 @@ namespace Biocrowds.Core
             Vector2 goalPos = new Vector2(goalsList[goalsList.Count - 1].transform.position.x,
                 goalsList[goalsList.Count - 1].transform.position.z);
             return (Vector2.Distance(agentPos, goalPos) <= goalDistThreshold);
+        }
+
+        //find nearby agents from the same group
+        public void FindNearbyGroupMembers(List<Agent> allAgents)
+        {
+            if (!HasGroup) return;
+
+            _nearbyGroupMembers.Clear();
+
+            foreach (Agent otherAgent in allAgents)
+            {
+                if (otherAgent == this) continue;
+                if (otherAgent.groupId != groupId) continue;
+
+                float distanceSqr = (transform.position - otherAgent.transform.position).sqrMagnitude;
+                float detectionRadius = otherAgent.isGroupLeader ? agentRadius * agentRadius * 16f : agentRadius * agentRadius * 9f; // increased for better group spacing
+
+                if (distanceSqr <= detectionRadius)
+                {
+                    _nearbyGroupMembers.Add(otherAgent);
+                }
+            }
         }
     }
 }
