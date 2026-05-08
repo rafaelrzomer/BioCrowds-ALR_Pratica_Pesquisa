@@ -532,7 +532,7 @@ namespace Biocrowds.Core
 
             : float.MaxValue;
 
-        int bestGroup = agent.groupId; // começa assumindo que o atual é o melhor
+        int bestGroup = agent.groupId; // começa assumindo que o atual é o melhor   
         float bestDiff = currentDiff;
 
         // Verifica agentes próximos de outros grupos
