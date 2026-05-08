@@ -1,11 +1,11 @@
-# 🧍 BioCrowds — Simulação de Multidões com Dinâmicas de Grupo
+# BioCrowds — Simulação de Multidões com Dinâmicas de Grupo
 
 > Fork do projeto [BioCrowds-GS](https://github.com/Virtual-Humans-Lab/BioCrowds-GS) desenvolvido para a disciplina de **Prática em Pesquisa — PUCRS 2026**.  
 > Grupo: Alice L. de Franceschi, Lara Volpato, Rafael R. Zomer, Pedro Idalencio e Humberto Gomes.
 
 ---
 
-## 📋 Sobre o Projeto
+## Sobre o Projeto
 
 Este projeto replica e expande o modelo de simulação de multidões descrito no artigo:
 
@@ -89,7 +89,7 @@ Alternativamente, você pode usar o **Visual Studio Code** com a extensão C# in
 
 ---
 
-## 📥 Instalação do Projeto
+## Instalação do Projeto
 
 ### Passo 1 — Clonar o repositório
 
@@ -131,7 +131,7 @@ Isso pode levar **alguns minutos**. Não feche o editor durante esse processo.
 
 ---
 
-## ▶️ Como Rodar a Simulação
+## Como Rodar a Simulação
 
 ### Passo 1 — Abrir a cena
 
@@ -183,7 +183,7 @@ Agente [7] (sem grupo) entrou no grupo 1
 
 ---
 
-## 🧪 Como Testar a Troca de Grupo
+## Como Testar a Troca de Grupo
 
 ### Verificar visualmente
 
@@ -208,7 +208,7 @@ Com o jogo rodando, selecione qualquer `Agent` na Hierarchy e altere no Inspecto
 
 ---
 
-## 📁 Estrutura de Pastas Relevante
+## Estrutura de Pastas Relevante
 
 ```
 Assets/
@@ -227,7 +227,7 @@ Assets/
 
 ---
 
-## 🐛 Solução de Problemas
+## Solução de Problemas
 
 **A Unity não abre o projeto / pede para atualizar:**  
 → Certifique-se de que a versão `2020.3.33f1` está instalada no Unity Hub. Não aceite a atualização automática.
