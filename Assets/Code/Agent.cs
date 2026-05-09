@@ -121,12 +121,14 @@ namespace Biocrowds.Core
         {
             _navMeshPath = new NavMeshPath();
 
-            _visualAgent ??= GetComponentInChildren<VisualAgent>();
+            if (_visualAgent == null)
+                _visualAgent = GetComponentInChildren<VisualAgent>();
 
             _goalPosition = Goal.transform.position;
             _dirAgentGoal = _goalPosition - transform.position;
 
-            _visualAgent?.Initialize(transform.position, this);
+            if (_visualAgent != null)
+                _visualAgent.Initialize(transform.position, this);
 
             _totalX = Mathf.FloorToInt(_world.Dimension.x / 2.0f) - 1;
             _totalZ = Mathf.FloorToInt(_world.Dimension.y / 2.0f);
@@ -140,15 +142,30 @@ namespace Biocrowds.Core
         {
             if (!SHOW_GROUP_COLORS || _cachedRenderer == null) return;
 
-            _cachedRenderer.material.color = groupId switch
+            // Define a cor base pelo groupId
+            Color baseColor;
+            switch (groupId)
             {
-                -1 => Color.white,
-                0 => Color.red,
-                1 => Color.blue,
-                2 => Color.green,
-                3 => Color.yellow,
-                _ => Color.magenta,
-            };
+                case -1: baseColor = Color.white;   break; // sem grupo
+                case  0: baseColor = Color.red;     break;
+                case  1: baseColor = Color.blue;    break;
+                case  2: baseColor = Color.green;   break;
+                case  3: baseColor = Color.yellow;  break;
+                default: baseColor = Color.magenta; break;
+            }
+
+            if (isGroupLeader)
+            {
+                // Líder: cor mais clara (mistura com branco) e escala maior
+                _cachedRenderer.material.color = Color.Lerp(baseColor, Color.white, 0.5f);
+                transform.localScale           = Vector3.one * 1.4f;
+            }
+            else
+            {
+                // Membro comum: cor base e escala normal
+                _cachedRenderer.material.color = baseColor;
+                transform.localScale           = Vector3.one * 1.0f;
+            }
         }
 
         // ── NAVMESH ────────────────────────────────────────────────────────
@@ -204,7 +221,6 @@ namespace Biocrowds.Core
         {
             _denW = 0;
             _distAuxin.Clear();
-            _nearbyGroupMembers.Clear();
             _isDenW = false;
             _rotation = new Vector3(0f, 0f, 0f);
             _dirAgentGoal = _goalPosition - transform.position;
@@ -258,34 +274,6 @@ namespace Biocrowds.Core
                 float valorW = CalculaW(k);
                 if (_denW < 0.0001f) valorW = 0.0f;
                 _rotation += valorW * _distAuxin[k] * _maxSpeed;
-            }
-
-            // add group cohesion force - follow the group leader
-            if (HasGroup && !isGroupLeader && _nearbyGroupMembers.Count > 0)
-            {
-                // find the group leader among nearby members
-                Agent leader = null;
-                foreach (Agent groupMember in _nearbyGroupMembers)
-                {
-                    if (groupMember.isGroupLeader)
-                    {
-                        leader = groupMember;
-                        break;
-                    }
-                }
-
-                // if leader is nearby, follow them
-                if (leader != null)
-                {
-                    Vector3 followDirection = (leader.transform.position - transform.position).normalized;
-                    float distanceToLeader = Vector3.Distance(transform.position, leader.transform.position);
-
-                    // only follow if at a comfortable distance (avoid overcrowding)
-                    if (distanceToLeader > agentRadius * 1.5f)
-                    {
-                        _rotation += groupCohesionStrength * followDirection * _maxSpeed;
-                    }
-                }
             }
         }
 
@@ -358,17 +346,17 @@ namespace Biocrowds.Core
             float distanceToCellSqr = (transform.position - _currentCell.transform.position).sqrMagnitude;
 
             if (_currentCell.X > 0)
-                CheckAuxins(ref distanceToCellSqr, _world.Cells[(_currentCell.X - 1) * _totalZ + _currentCell.Z + 0]);
+                CheckAuxins(ref distanceToCellSqr, _world.Cells[(_currentCell.X - 1) * _totalZ + (_currentCell.Z + 0)]);
             if (_currentCell.X > 0 && _currentCell.Z < _totalZ - 1)
-                CheckAuxins(ref distanceToCellSqr, _world.Cells[(_currentCell.X - 1) * _totalZ + _currentCell.Z + 1]);
+                CheckAuxins(ref distanceToCellSqr, _world.Cells[(_currentCell.X - 1) * _totalZ + (_currentCell.Z + 1)]);
             if (_currentCell.X > 0 && _currentCell.Z > 0)
                 CheckAuxins(ref distanceToCellSqr, _world.Cells[(_currentCell.X - 1) * _totalZ + (_currentCell.Z - 1)]);
             if (_currentCell.Z < _totalZ - 1)
-                CheckAuxins(ref distanceToCellSqr, _world.Cells[(_currentCell.X + 0) * _totalZ + _currentCell.Z + 1]);
+                CheckAuxins(ref distanceToCellSqr, _world.Cells[(_currentCell.X + 0) * _totalZ + (_currentCell.Z + 1)]);
             if (_currentCell.X < _totalX && _currentCell.Z < _totalZ - 1)
-                CheckAuxins(ref distanceToCellSqr, _world.Cells[(_currentCell.X + 1) * _totalZ + _currentCell.Z + 1]);
+                CheckAuxins(ref distanceToCellSqr, _world.Cells[(_currentCell.X + 1) * _totalZ + (_currentCell.Z + 1)]);
             if (_currentCell.X < _totalX)
-                CheckAuxins(ref distanceToCellSqr, _world.Cells[(_currentCell.X + 1) * _totalZ + _currentCell.Z + 0]);
+                CheckAuxins(ref distanceToCellSqr, _world.Cells[(_currentCell.X + 1) * _totalZ + (_currentCell.Z + 0)]);
             if (_currentCell.X < _totalX && _currentCell.Z > 0)
                 CheckAuxins(ref distanceToCellSqr, _world.Cells[(_currentCell.X + 1) * _totalZ + (_currentCell.Z - 1)]);
             if (_currentCell.Z > 0)
@@ -422,28 +410,6 @@ namespace Biocrowds.Core
                 goalsList[goalsList.Count - 1].transform.position.z
             );
             return Vector2.Distance(agentPos, goalPos) <= goalDistThreshold;
-        }
-
-        //find nearby agents from the same group
-        public void FindNearbyGroupMembers(List<Agent> allAgents)
-        {
-            if (!HasGroup) return;
-
-            _nearbyGroupMembers.Clear();
-
-            foreach (Agent otherAgent in allAgents)
-            {
-                if (otherAgent == this) continue;
-                if (otherAgent.groupId != groupId) continue;
-
-                float distanceSqr = (transform.position - otherAgent.transform.position).sqrMagnitude;
-                float detectionRadius = otherAgent.isGroupLeader ? agentRadius * agentRadius * 16f : agentRadius * agentRadius * 9f; // increased for better group spacing
-
-                if (distanceSqr <= detectionRadius)
-                {
-                    _nearbyGroupMembers.Add(otherAgent);
-                }
-            }
         }
     }
 }

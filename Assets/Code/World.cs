@@ -18,8 +18,6 @@ using System.Collections;
 using UnityEngine.AI;
 using System.Linq;
 
-private Dictionary<int, float> _groupAffinityAverages = new Dictionary<int, float>();
-
 namespace Biocrowds.Core
 {
     public class World : MonoBehaviour
@@ -113,7 +111,7 @@ namespace Biocrowds.Core
         {
             _newAgentID = 0;
 
-            if (spawnAreas == null || spawnAreas.Count == 0)
+            if (spawnAreas.Count == 0)
                 spawnAreas = FindObjectsOfType<SpawnArea>().ToList();
 
             if (planeMeshFilter != null)
@@ -259,6 +257,8 @@ namespace Biocrowds.Core
             UpdateGroupMembership();
             // Agentes sozinhos buscam grupo compatível independente de pares
             UpdateLoneAgents();
+            // Elege o agente com maior dominance como líder de cada grupo
+            UpdateGroupLeaders();
             // Atualiza cor de debug de cada agente
             for (int i = 0; i < _agents.Count; i++)
                 _agents[i].UpdateGroupColor();
@@ -272,15 +272,6 @@ namespace Biocrowds.Core
             // ── Captura de auxinas por agente ──────────────────────────────
             for (int i = 0; i < _agents.Count; i++)
                 _agents[i].FindNearAuxins();
-
-            //find nearby group members for each agent
-            for (int i = 0; i < _agents.Count; i++)
-                _agents[i].FindNearbyGroupMembers(_agents);
-
-            // update group leaders (agent with highest dominance in each group)
-            ComputeGroupAffinityAverages();
-            UpdateGroupMembership();
-            UpdateGroupLeaders();
 
             for (int i = 0; i < _agents.Count; i++)
                 _agents[i].auxinCount = _agents[i].Auxins.Count;
@@ -514,6 +505,44 @@ namespace Biocrowds.Core
             }
         }
 
+        /// <summary>
+        /// Para cada grupo, elege como líder o agente com maior valor de dominance.
+        /// Reseta isGroupLeader de todos antes de reeleger — garante que só
+        /// um agente por grupo seja líder a cada frame.
+        /// </summary>
+        private void UpdateGroupLeaders()
+        {
+            // Passo 1: reseta todos os líderes
+            foreach (Agent agent in _agents)
+                agent.isGroupLeader = false;
+
+            // Passo 2: encontra o agente com maior dominance em cada grupo
+            // groupId : agente com maior dominance encontrado até agora
+            var leaders = new Dictionary<int, Agent>();
+
+            foreach (Agent agent in _agents)
+            {
+                if (!agent.HasGroup) continue;
+
+                int gid = agent.groupId;
+
+                if (!leaders.ContainsKey(gid))
+                {
+                    // Primeiro agente deste grupo: candidato inicial
+                    leaders[gid] = agent;
+                }
+                else if (agent.dominance > leaders[gid].dominance)
+                {
+                    // Agente mais dominante encontrado: substitui candidato
+                    leaders[gid] = agent;
+                }
+            }
+
+            // Passo 3: marca os vencedores como líderes
+            foreach (var kvp in leaders)
+                kvp.Value.isGroupLeader = true;
+        }
+
         // ── SPAWN DE AGENTES ───────────────────────────────────────────────
 
         private void SpawnNewAgentInArea(SpawnArea _area, bool _isInitialSpawn)
@@ -612,97 +641,6 @@ namespace Biocrowds.Core
         public void ShowCellMeshes(bool p_enable)
         {
             foreach (Cell _c in Cells) _c.ShowMesh(p_enable);
-        }
-
-        private void UpdateGroupMembership()
-{
-    foreach (Agent agent in _agents)
-    {
-        // Diferença de afinidade com o grupo ATUAL
-        // Se não tem grupo, a diferença é infinita (qualquer grupo é melhor)
-        float currentDiff = agent.HasGroup
-        //Se der erro, troque a linha abaixo, por:
-            ? Mathf.Abs(agent.affinity - _groupAffinityAverages.GetValueOrDefault(agent.groupId, agent.affinity))
-        
-        //por isso: (_groupAffinityAverages.ContainsKey(agent.groupId) ? _groupAffinityAverages[agent.groupId] : agent.affinity) 
-
-            : float.MaxValue;
-
-        int bestGroup = agent.groupId; // começa assumindo que o atual é o melhor   
-        float bestDiff = currentDiff;
-
-        // Verifica agentes próximos de outros grupos
-        foreach (Agent other in _agents)
-        {
-            if (other == agent) continue;                        // ignora a si mesmo
-            if (!other.HasGroup) continue;                       // ignora outros sem grupo
-            if (other.groupId == agent.groupId) continue;       // ignora mesmo grupo
-
-            float dist = Vector3.Distance(agent.transform.position, other.transform.position);
-            if (dist > agent.groupSwitchRadius) continue;       // fora do raio
-
-            // Diferença entre afinidade do agente e média do grupo vizinho
-            if (_groupAffinityAverages.TryGetValue(other.groupId, out float otherAvg))
-            {
-                float diff = Mathf.Abs(agent.affinity - otherAvg);
-
-                // Só troca se a melhoria for maior que o threshold (evita flicker)
-                if (diff < bestDiff - agent.affinityThreshold)
-                {
-                    bestDiff = diff;
-                    bestGroup = other.groupId;
-                }
-            }
-        }
-
-        // Aplica a troca, se necessário
-        if (bestGroup != agent.groupId)
-        {
-            agent.groupId = bestGroup;
-            agent.isGroupLeader = false; // perde liderança ao trocar de grupo
-        }
-    }
-}
-        private void UpdateGroupLeaders()
-        {
-            // reset all leaders
-            foreach (Agent agent in _agents)
-            {
-                agent.isGroupLeader = false;
-            }
-
-            // group agents by groupId
-            var groups = new Dictionary<int, List<Agent>>();
-            foreach (Agent agent in _agents)
-            {
-                if (agent.HasGroup)
-                {
-                    if (!groups.ContainsKey(agent.groupId))
-                        groups[agent.groupId] = new List<Agent>();
-                    groups[agent.groupId].Add(agent);
-                }
-            }
-
-            // for each group, find the agent with highest dominance
-            foreach (var group in groups)
-            {
-                Agent leader = null;
-                float maxDominance = -1f;
-
-                foreach (Agent agent in group.Value)
-                {
-                    if (agent.dominance > maxDominance)
-                    {
-                        maxDominance = agent.dominance;
-                        leader = agent;
-                    }
-                }
-
-                if (leader != null)
-                {
-                    leader.isGroupLeader = true;
-                }
-            }
         }
     }
 }
