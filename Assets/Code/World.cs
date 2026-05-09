@@ -111,7 +111,7 @@ namespace Biocrowds.Core
         {
             _newAgentID = 0;
 
-            if (spawnAreas.Count == 0)
+            if (spawnAreas == null || spawnAreas.Count == 0)
                 spawnAreas = FindObjectsOfType<SpawnArea>().ToList();
 
             if (planeMeshFilter != null)
