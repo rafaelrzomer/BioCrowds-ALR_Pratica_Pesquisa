@@ -57,6 +57,7 @@ MeshRenderer:
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -81,6 +82,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!114 &1348513369947889383
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -96,6 +98,11 @@ MonoBehaviour:
   agentRadius: 0
   _velocity: {x: 0, y: 0, z: 0}
   _maxSpeed: 1.5
+  dominance: 1
+  affinity: 0
+  groupId: -1
+  groupCohesionStrength: 0.5
+  isGroupLeader: 0
   Goal: {fileID: 0}
   goalsList: []
   goalsWaitList: []
@@ -103,9 +110,12 @@ MonoBehaviour:
   waitCount: 0
   goalIndex: 0
   removeWhenGoalReached: 0
+  goalDistThreshold: 30
   _auxins: []
   _currentCell: {fileID: 0}
+  _visualAgent: {fileID: 0}
   _distAuxin: []
+  _nearbyGroupMembers: []
   auxinCount: 0
 --- !u!1001 &2131956250847077579
 PrefabInstance:
@@ -117,6 +127,10 @@ PrefabInstance:
     - target: {fileID: 1358355467589876, guid: 161dcf16d6a2b1b4cb424ee68e5b8bc5, type: 3}
       propertyPath: m_Name
       value: dode@T-Pose
+      objectReference: {fileID: 0}
+    - target: {fileID: 4062203314998002, guid: 161dcf16d6a2b1b4cb424ee68e5b8bc5, type: 3}
+      propertyPath: m_RootOrder
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4062203314998002, guid: 161dcf16d6a2b1b4cb424ee68e5b8bc5, type: 3}
       propertyPath: m_LocalPosition.x
@@ -131,6 +145,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4062203314998002, guid: 161dcf16d6a2b1b4cb424ee68e5b8bc5, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4062203314998002, guid: 161dcf16d6a2b1b4cb424ee68e5b8bc5, type: 3}
       propertyPath: m_LocalRotation.x
       value: 0
       objectReference: {fileID: 0}
@@ -140,14 +158,6 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4062203314998002, guid: 161dcf16d6a2b1b4cb424ee68e5b8bc5, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4062203314998002, guid: 161dcf16d6a2b1b4cb424ee68e5b8bc5, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 4062203314998002, guid: 161dcf16d6a2b1b4cb424ee68e5b8bc5, type: 3}
-      propertyPath: m_RootOrder
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4062203314998002, guid: 161dcf16d6a2b1b4cb424ee68e5b8bc5, type: 3}
