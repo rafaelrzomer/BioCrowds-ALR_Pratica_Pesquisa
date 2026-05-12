@@ -437,7 +437,6 @@ namespace Biocrowds.Core
 
             groupId = newGroupId;
             isGroupLeader = false; // reset leader status when switching groups
-            _nearbyGroupMembers.Clear(); // clear nearby members list
         }
     }
 }

@@ -30,8 +30,6 @@ namespace Biocrowds.Core
         [SerializeField] private float SIMULATION_TIME_STEP   = 0.02f;
         [SerializeField] private float MAX_AGENTS             = 0;
         [SerializeField] private float AGENT_RADIUS           = 1.00f;
-        [SerializeField] private float AUXIN_RADIUS           = 0.1f;
-        [SerializeField] private float AUXIN_DENSITY          = 0.50f;
         [SerializeField] private float GOAL_DISTANCE_THRESHOLD = 1.0f;
 
         // ── DINÂMICA DE GRUPOS ─────────────────────────────────────────────
@@ -47,10 +45,13 @@ namespace Biocrowds.Core
         // Ex: 0.15 significa que o novo grupo precisa ser pelo menos 15% mais compatível.
         [SerializeField] private float AFFINITY_SWITCH_THRESHOLD = 0.15f;
 
+        // Diferença máxima de afinidade entre agente sozinho e média do grupo
+        // para que ele entre no grupo.
+        [SerializeField] private float LONE_AGENT_JOIN_THRESHOLD = 0.15f;
+
         // group interaction settings
         [SerializeField] private float GROUP_PROXIMITY_DISTANCE = 10.0f;
         [Range(0f, 1f)]
-        [SerializeField] private float AFFINITY_SWITCH_THRESHOLD = 0.1f; // minimum difference to trigger group switch
 
         [Header("Terrain Setting")]
         public MeshFilter planeMeshFilter;
@@ -64,8 +65,6 @@ namespace Biocrowds.Core
         [SerializeField]
         private Vector2 _offset = new Vector2(0.0f, 0.0f);
         public Vector2 Offset { get { return _offset; } }
-
-        [SerializeField] private int _maxAgents = 30;
 
         // ── PREFABS E CONTAINERS ───────────────────────────────────────────
 
@@ -90,8 +89,6 @@ namespace Biocrowds.Core
         // ── DICIONÁRIOS DE GRUPO ───────────────────────────────────────────
 
         // Média de afinidade de cada grupo  →  groupId : média
-        private Dictionary<int, float>   _groupAffinityAverages = new Dictionary<int, float>();
-
         // Posição central (centróide) de cada grupo  →  groupId : Vector3
         private Dictionary<int, Vector3> _groupCentroids        = new Dictionary<int, Vector3>();
 
@@ -101,6 +98,9 @@ namespace Biocrowds.Core
         {
             get { return _groupAffinityAverages; }
         }
+
+        // Pares de grupos cujos centróides estão dentro de GROUP_DETECTION_RADIUS
+        private List<(int, int)> _approachingGroupPairs = new List<(int, int)>();
 
         private bool _isReady;
 
