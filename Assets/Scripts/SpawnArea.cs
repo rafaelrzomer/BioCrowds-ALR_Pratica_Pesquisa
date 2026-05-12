@@ -4,29 +4,36 @@ using UnityEngine;
 
 public class SpawnArea : MonoBehaviour
 {
-    private Collider _collider;
-    private MeshRenderer _meshRenderer;
+    private Collider      _collider;
+    private MeshRenderer  _meshRenderer;
 
+    // ── GRUPO ──────────────────────────────────────────────────────────────
     [Header("Spawn Area Group")]
+    // Identificador do grupo que esta área vai spawnar.
+    // -1 = agentes sem grupo (vão procurar um grupo por afinidade)
     public int groupId = -1;
 
+    // ── SPAWN INICIAL ──────────────────────────────────────────────────────
     [Header("Initial Spawner Settings")]
-    public int initialNumberOfAgents;
-    public bool initialRemoveWhenGoalReached;
+    public int              initialNumberOfAgents;
+    public bool             initialRemoveWhenGoalReached;
     public List<GameObject> initialAgentsGoalList;
-    public List<float> initialWaitList;
+    public List<float>      initialWaitList;
 
+    // ── SPAWN CÍCLICO ──────────────────────────────────────────────────────
     [Header("Repeating Spawner Settings")]
-    public float cycleLenght = 1.0f;
-    public int quantitySpawnedEachCycle;
-    public bool repeatingRemoveWhenGoalReached;
+    public float            cycleLenght = 1.0f;
+    public int              quantitySpawnedEachCycle;
+    public bool             repeatingRemoveWhenGoalReached;
     public List<GameObject> repeatingGoalList;
-    public List<float> repeatingWaitList;
+    public List<float>      repeatingWaitList;
+
     private float cycleCounter = 0.0f;
-    private bool cycleReady = false;
+    private bool  cycleReady   = false;
 
+    public bool CycleReady { get => cycleReady; }
 
-    public bool CycleReady { get => cycleReady;  }
+    // ──────────────────────────────────────────────────────────────────────
 
     private void Awake()
     {
@@ -36,10 +43,9 @@ public class SpawnArea : MonoBehaviour
             _meshRenderer = GetComponent<MeshRenderer>();
 
         cycleCounter = 0.0f;
-        cycleReady = false;
+        cycleReady   = false;
     }
 
-    // Update is called once per frame
     void Update()
     {
         if (Input.GetKeyDown(KeyCode.Alpha2))
@@ -48,14 +54,13 @@ public class SpawnArea : MonoBehaviour
 
     public void UpdateSpawnCounter(float dt)
     {
-        if (cycleLenght == 0.0f || quantitySpawnedEachCycle == 0)
-            return;
+        if (cycleLenght == 0.0f || quantitySpawnedEachCycle == 0) return;
 
         cycleCounter += dt;
         if (cycleCounter >= cycleLenght)
         {
             cycleCounter -= cycleLenght;
-            cycleReady = true;
+            cycleReady    = true;
         }
     }
 
@@ -67,13 +72,13 @@ public class SpawnArea : MonoBehaviour
     public Vector3 GetRandomPoint(float height = 0.0f)
     {
         Vector3 point = new Vector3(
-            Random.Range(_collider.bounds.min.x, _collider.bounds.max.x), 
+            Random.Range(_collider.bounds.min.x, _collider.bounds.max.x),
             height,
             Random.Range(_collider.bounds.min.z, _collider.bounds.max.z)
         );
-        
         return _collider.ClosestPoint(point);
     }
+
     public void ShowMesh(bool _show)
     {
         _meshRenderer.enabled = _show;

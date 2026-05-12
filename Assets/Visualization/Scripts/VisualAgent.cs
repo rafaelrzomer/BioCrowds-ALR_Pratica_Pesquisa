@@ -13,8 +13,6 @@ public class VisualAgent : MonoBehaviour
     public Queue<Vector3> dirMem;
     public float[] qview;
     private Vector3 currPosition;
-    private bool updated;
-    private bool initialized;
     private Vector3 currMoveVect;
     private Vector3 prevMoveVect;
     [SerializeField]
@@ -82,8 +80,6 @@ public class VisualAgent : MonoBehaviour
         currPosition = transform.parent.position;
         qview = moveMem.ToArray();
         dirView = dirMem.ToList();
-        updated = false;
-
     }
 
     public void Initialize(Vector3 pos, Agent p_agent)
@@ -95,7 +91,6 @@ public class VisualAgent : MonoBehaviour
         currPosition = new Vector3(pos.x, pos.y, pos.z);
         transform.position = currPosition;
         transform.LookAt(p_agent.goalsList[0].transform.position);
-        updated = false;
         for (int i = 0; i < 15; i++)
         {
             moveMem.Enqueue(0);
@@ -105,7 +100,6 @@ public class VisualAgent : MonoBehaviour
             dirMem.Enqueue((pos - p_agent.goalsList[0].transform.position).normalized);
         }
         dirView = dirMem.ToList();
-        initialized = true;
     }
 
 
