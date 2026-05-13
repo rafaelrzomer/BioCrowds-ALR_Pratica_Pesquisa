@@ -35,10 +35,11 @@ namespace Biocrowds.Core
         [SerializeField] private float GOAL_DISTANCE_THRESHOLD = 1.0f;
 
         // group interaction settings
-        [SerializeField] private float GROUP_PROXIMITY_DISTANCE = 0.5f;
+        [SerializeField] private bool ALLOW_GROUP_CHANGES = true; // master switch for all group changes
+        [SerializeField] private float GROUP_PROXIMITY_DISTANCE = 5.0f; // increased from 2.0f to be much more restrictive
         [SerializeField] private float GROUP_SWITCH_GRACE_PERIOD = 1.0f; // time after spawn before group changes are allowed
         [Range(0f, 1f)]
-        [SerializeField] private float AFFINITY_SWITCH_THRESHOLD = 0.1f; // minimum difference to trigger group switch
+        [SerializeField] private float AFFINITY_SWITCH_THRESHOLD = 0.3f; // increased from 0.2f to be much more restrictive
 
 
         [Header("Terrain Setting")]
@@ -599,6 +600,9 @@ namespace Biocrowds.Core
 
         private void EvaluateGroupProximityAndSwitches()
         {
+            if (!ALLOW_GROUP_CHANGES)
+                return;
+
             // group agents by groupId
             var groups = new Dictionary<int, List<Agent>>();
             foreach (Agent agent in _agents)
@@ -630,6 +634,7 @@ namespace Biocrowds.Core
         {
             // find the minimum distance between any two agents from different groups
             float minDistance = float.MaxValue;
+            int closePairs = 0;
 
             foreach (Agent agent1 in group1)
             {
@@ -638,10 +643,17 @@ namespace Biocrowds.Core
                     float distance = Vector3.Distance(agent1.transform.position, agent2.transform.position);
                     if (distance < minDistance)
                         minDistance = distance;
+
+                    // count how many agent pairs are very close (within half the proximity distance)
+                    if (distance <= GROUP_PROXIMITY_DISTANCE * 0.5f)
+                        closePairs++;
                 }
             }
 
-            return minDistance <= GROUP_PROXIMITY_DISTANCE;
+            // groups are considered nearby if:
+            // 1. At least one pair is within proximity distance, AND
+            // 2. At least 2 pairs are within half proximity distance (more restrictive)
+            return minDistance <= GROUP_PROXIMITY_DISTANCE && closePairs >= 2;
         }
 
         private void EvaluateGroupSwaps(List<Agent> group1, List<Agent> group2)
@@ -691,6 +703,9 @@ namespace Biocrowds.Core
 
         private void EvaluateSoloAgentsMeetings()
         {
+            if (!ALLOW_GROUP_CHANGES)
+                return;
+
             // find all solo agents (those without a group)
             List<Agent> soloAgents = new List<Agent>();
             foreach (Agent agent in _agents)
@@ -733,6 +748,9 @@ namespace Biocrowds.Core
 
         private void EvaluateSoloAgentsJoiningGroups()
         {
+            if (!ALLOW_GROUP_CHANGES)
+                return;
+
             // find all solo agents (those without a group)
             List<Agent> soloAgents = new List<Agent>();
             foreach (Agent agent in _agents)
@@ -767,17 +785,26 @@ namespace Biocrowds.Core
 
                 foreach (var group in groups)
                 {
-                    // check if group is nearby
+                    // check if group is nearby - more restrictive check
                     List<Agent> groupAgents = group.Value;
                     float minDistance = float.MaxValue;
+                    int closeAgents = 0;
+
                     foreach (Agent groupAgent in groupAgents)
                     {
                         float distance = Vector3.Distance(soloAgent.transform.position, groupAgent.transform.position);
                         if (distance < minDistance)
                             minDistance = distance;
+
+                        // count how many group agents are close to the solo agent
+                        if (distance <= GROUP_PROXIMITY_DISTANCE * 0.5f)
+                            closeAgents++;
                     }
 
-                    if (minDistance <= GROUP_PROXIMITY_DISTANCE)
+                    // solo agent can join group if:
+                    // 1. At least one group agent is within proximity distance, AND
+                    // 2. At least 2 group agents are within half proximity distance
+                    if (minDistance <= GROUP_PROXIMITY_DISTANCE && closeAgents >= 2)
                     {
                         // group is nearby, check affinity compatibility
                         float groupAffinity = _groupAffinityAverages.ContainsKey(group.Key) ? _groupAffinityAverages[group.Key] : 0f;
