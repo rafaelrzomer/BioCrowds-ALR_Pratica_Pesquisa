@@ -531,6 +531,23 @@ namespace Biocrowds.Core
             groupId = newGroupId;
             isGroupLeader = false; // reset leader status when switching groups
             _nearbyGroupMembers.Clear(); // clear nearby members list
+            
+            // Aplicar cor do novo grupo
+            ApplyGroupColor();
+        }
+
+        /// <summary>
+        /// Aplica a cor correspondente ao grupo do agente
+        /// </summary>
+        public void ApplyGroupColor()
+        {
+            if (_visualAgent == null) return;
+            
+            if (GroupColorManager.Instance != null)
+            {
+                Color groupColor = GroupColorManager.Instance.GetGroupColor(groupId);
+                _visualAgent.ApplyGroupColor(groupColor);
+            }
         }
     }
 }

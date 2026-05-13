@@ -24,6 +24,8 @@ public class VisualAgent : MonoBehaviour
     [SerializeField]
     public List<Vector3> dirView;
 
+    private Renderer[] _renderers;
+    private Material[] _materials;
 
 	// Update is called once per frame
 	public void Step() 
@@ -106,6 +108,50 @@ public class VisualAgent : MonoBehaviour
         }
         dirView = dirMem.ToList();
         initialized = true;
+
+        // Cachear renderers e materiais
+        CacheRenderersAndMaterials();
+
+        // Aplicar cor do grupo (incluindo agentes sem grupo)
+        if (GroupColorManager.Instance != null)
+        {
+            Color groupColor = GroupColorManager.Instance.GetGroupColor(p_agent.groupId);
+            ApplyGroupColor(groupColor);
+        }
+    }
+
+    /// <summary>
+    /// Encontra e cacheia todos os Renderers do agente
+    /// </summary>
+    private void CacheRenderersAndMaterials()
+    {
+        _renderers = GetComponentsInChildren<Renderer>();
+        _materials = new Material[_renderers.Length];
+
+        for (int i = 0; i < _renderers.Length; i++)
+        {
+            _materials[i] = new Material(_renderers[i].material);
+            _renderers[i].material = _materials[i];
+        }
+    }
+
+    /// <summary>
+    /// Aplica a cor do grupo a todos os materiais do agente
+    /// </summary>
+    public void ApplyGroupColor(Color color)
+    {
+        if (_materials == null || _materials.Length == 0)
+        {
+            CacheRenderersAndMaterials();
+        }
+
+        foreach (Material mat in _materials)
+        {
+            if (mat != null)
+            {
+                mat.color = color;
+            }
+        }
     }
 
 
