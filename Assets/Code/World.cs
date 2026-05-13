@@ -39,6 +39,7 @@ namespace Biocrowds.Core
         [Range(0f, 1f)]
         [SerializeField] private float AFFINITY_SWITCH_THRESHOLD = 0.1f; // minimum difference to trigger group switch
 
+
         [Header("Terrain Setting")]
         public MeshFilter planeMeshFilter;
 
@@ -83,6 +84,7 @@ namespace Biocrowds.Core
         [SerializeField]
         private Transform _agentsContainer;
         private int _newAgentID = 0;
+        private int _nextGroupId = 0; // for creating new groups when solo agents meet
 
         public List<Cell> Cells
         {
@@ -110,8 +112,16 @@ namespace Biocrowds.Core
         private void Awake()
         {
             _newAgentID = 0;
+            _nextGroupId = 0;
             if (spawnAreas.Count == 0)
                 spawnAreas = FindObjectsOfType<SpawnArea>().ToList();
+
+            // initialize next group id to avoid conflicts with existing group ids
+            foreach (SpawnArea area in spawnAreas)
+            {
+                if (area.groupId >= 0 && area.groupId >= _nextGroupId)
+                    _nextGroupId = area.groupId + 1;
+            }
 
             if (planeMeshFilter != null)
             {
@@ -364,6 +374,12 @@ namespace Biocrowds.Core
 
             // check for group proximity and potential group switches
             EvaluateGroupProximityAndSwitches();
+
+            // evaluate solo agents meeting each other and forming new groups
+            EvaluateSoloAgentsMeetings();
+
+            // evaluate solo agents joining existing groups
+            EvaluateSoloAgentsJoiningGroups();
 
             for (int i = 0; i < _agents.Count; i++)
                 _agents[i].auxinCount = _agents[i].Auxins.Count;
@@ -665,6 +681,105 @@ namespace Biocrowds.Core
 
             // switch if new group is significantly closer in affinity
             return (currentDifference - newDifference) >= AFFINITY_SWITCH_THRESHOLD;
+        }
+
+        private void EvaluateSoloAgentsMeetings()
+        {
+            // find all solo agents (those without a group)
+            List<Agent> soloAgents = new List<Agent>();
+            foreach (Agent agent in _agents)
+            {
+                if (!agent.HasGroup)
+                    soloAgents.Add(agent);
+            }
+
+            if (soloAgents.Count < 2)
+                return; // need at least 2 solo agents to form a pair
+
+            // check all pairs of solo agents
+            for (int i = 0; i < soloAgents.Count; i++)
+            {
+                for (int j = i + 1; j < soloAgents.Count; j++)
+                {
+                    Agent agent1 = soloAgents[i];
+                    Agent agent2 = soloAgents[j];
+
+                    // check if they are close
+                    float distance = Vector3.Distance(agent1.transform.position, agent2.transform.position);
+                    if (distance <= GROUP_PROXIMITY_DISTANCE)
+                    {
+                        // check if their affinities are similar
+                        float affinityDifference = Mathf.Abs(agent1.affinity - agent2.affinity);
+                        if (affinityDifference <= AFFINITY_SWITCH_THRESHOLD)
+                        {
+                            // they should form a new group together
+                            int newGroupId = _nextGroupId++;
+                            agent1.SwitchGroup(newGroupId);
+                            agent2.SwitchGroup(newGroupId);
+                        }
+                    }
+                }
+            }
+        }
+
+        private void EvaluateSoloAgentsJoiningGroups()
+        {
+            // find all solo agents (those without a group)
+            List<Agent> soloAgents = new List<Agent>();
+            foreach (Agent agent in _agents)
+            {
+                if (!agent.HasGroup)
+                    soloAgents.Add(agent);
+            }
+
+            if (soloAgents.Count == 0)
+                return; // no solo agents to process
+
+            // find all groups
+            var groups = new Dictionary<int, List<Agent>>();
+            foreach (Agent agent in _agents)
+            {
+                if (agent.HasGroup)
+                {
+                    if (!groups.ContainsKey(agent.groupId))
+                        groups[agent.groupId] = new List<Agent>();
+                    groups[agent.groupId].Add(agent);
+                }
+            }
+
+            if (groups.Count == 0)
+                return; // no groups available to join
+
+            // for each solo agent, check if they should join any nearby group
+            foreach (Agent soloAgent in soloAgents)
+            {
+                foreach (var group in groups)
+                {
+                    // check if group is nearby
+                    List<Agent> groupAgents = group.Value;
+                    float minDistance = float.MaxValue;
+                    foreach (Agent groupAgent in groupAgents)
+                    {
+                        float distance = Vector3.Distance(soloAgent.transform.position, groupAgent.transform.position);
+                        if (distance < minDistance)
+                            minDistance = distance;
+                    }
+
+                    if (minDistance <= GROUP_PROXIMITY_DISTANCE)
+                    {
+                        // group is nearby, check affinity compatibility
+                        float groupAffinity = _groupAffinityAverages.ContainsKey(group.Key) ? _groupAffinityAverages[group.Key] : 0f;
+                        float affinityDifference = Mathf.Abs(soloAgent.affinity - groupAffinity);
+
+                        // if affinity difference is small enough, join the group
+                        if (affinityDifference <= AFFINITY_SWITCH_THRESHOLD)
+                        {
+                            soloAgent.SwitchGroup(group.Key);
+                            break; // solo agent joins the first compatible group found
+                        }
+                    }
+                }
+            }
         }
     }
 }
