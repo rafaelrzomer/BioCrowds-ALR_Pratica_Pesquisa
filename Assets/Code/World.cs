@@ -35,7 +35,7 @@ namespace Biocrowds.Core
         [SerializeField] private float GOAL_DISTANCE_THRESHOLD = 1.0f;
 
         // group interaction settings
-        [SerializeField] private float GROUP_PROXIMITY_DISTANCE = 10.0f;
+        [SerializeField] private float GROUP_PROXIMITY_DISTANCE = 0.5f;
         [SerializeField] private float GROUP_SWITCH_GRACE_PERIOD = 1.0f; // time after spawn before group changes are allowed
         [Range(0f, 1f)]
         [SerializeField] private float AFFINITY_SWITCH_THRESHOLD = 0.1f; // minimum difference to trigger group switch
