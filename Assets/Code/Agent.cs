@@ -36,6 +36,9 @@ namespace Biocrowds.Core
         public int groupId = -1;
         public bool HasGroup => groupId >= 0;
 
+        // time since spawn: used to prevent immediate group switching after creation
+        public float timeSinceSpawn = 0f;
+
         // group cohesion strength
         [Range(0f, 1f)]
         public float groupCohesionStrength = 0.3f;

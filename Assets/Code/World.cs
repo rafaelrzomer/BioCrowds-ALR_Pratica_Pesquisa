@@ -36,6 +36,7 @@ namespace Biocrowds.Core
 
         // group interaction settings
         [SerializeField] private float GROUP_PROXIMITY_DISTANCE = 10.0f;
+        [SerializeField] private float GROUP_SWITCH_GRACE_PERIOD = 1.0f; // time after spawn before group changes are allowed
         [Range(0f, 1f)]
         [SerializeField] private float AFFINITY_SWITCH_THRESHOLD = 0.1f; // minimum difference to trigger group switch
 
@@ -356,7 +357,9 @@ namespace Biocrowds.Core
                 for (int j = 0; j < _cells[i].Auxins.Count; j++)
                     _cells[i].Auxins[j].ResetAuxin();
 
-           
+            // update agent age before group evaluation
+            for (int i = 0; i < _agents.Count; i++)
+                _agents[i].timeSinceSpawn += SIMULATION_TIME_STEP;
 
             //find nearest auxins for each agent
             for (int i = 0; i < _agents.Count; i++)
@@ -673,6 +676,9 @@ namespace Biocrowds.Core
 
         private bool ShouldAgentSwitchGroup(Agent agent, float currentGroupAffinity, float newGroupAffinity, int newGroupId)
         {
+            if (agent.timeSinceSpawn < GROUP_SWITCH_GRACE_PERIOD)
+                return false;
+
             // calculate difference between agent's affinity and current group
             float currentDifference = Mathf.Abs(agent.affinity - currentGroupAffinity);
             
@@ -703,6 +709,9 @@ namespace Biocrowds.Core
                 {
                     Agent agent1 = soloAgents[i];
                     Agent agent2 = soloAgents[j];
+
+                    if (agent1.timeSinceSpawn < GROUP_SWITCH_GRACE_PERIOD || agent2.timeSinceSpawn < GROUP_SWITCH_GRACE_PERIOD)
+                        continue;
 
                     // check if they are close
                     float distance = Vector3.Distance(agent1.transform.position, agent2.transform.position);
@@ -753,6 +762,9 @@ namespace Biocrowds.Core
             // for each solo agent, check if they should join any nearby group
             foreach (Agent soloAgent in soloAgents)
             {
+                if (soloAgent.timeSinceSpawn < GROUP_SWITCH_GRACE_PERIOD)
+                    continue;
+
                 foreach (var group in groups)
                 {
                     // check if group is nearby
