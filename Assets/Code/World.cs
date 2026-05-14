@@ -36,7 +36,7 @@ namespace Biocrowds.Core
 
         // group interaction settings
         [SerializeField] private bool ALLOW_GROUP_CHANGES = true; // master switch for all group changes
-        [SerializeField] private float GROUP_PROXIMITY_DISTANCE = 5.0f; // increased from 2.0f to be much more restrictive
+        [SerializeField] private float GROUP_PROXIMITY_DISTANCE = 1.0f; // increased from 2.0f to be much more restrictive
         [SerializeField] private float GROUP_SWITCH_GRACE_PERIOD = 1.0f; // time after spawn before group changes are allowed
         [Range(0f, 1f)]
         [SerializeField] private float AFFINITY_SWITCH_THRESHOLD = 0.3f; // increased from 0.2f to be much more restrictive
