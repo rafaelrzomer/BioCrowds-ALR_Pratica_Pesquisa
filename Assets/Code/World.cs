@@ -29,11 +29,11 @@ namespace Biocrowds.Core
 
         [Tooltip("Seed do RNG da Unity. Mesmo seed = trajetórias idênticas. " +
                  "Trocar o valor produz um run diferente, reproduzível.")]
-        [SerializeField] private readonly int simulationSeed = 42;
-        [SerializeField] private readonly float SIMULATION_TIME_STEP   = 0.02f;
-        [SerializeField] private readonly float MAX_AGENTS             = 0;
-        [SerializeField] private readonly float AGENT_RADIUS           = 1.00f;
-        [SerializeField] private readonly float GOAL_DISTANCE_THRESHOLD = 1.0f;
+        [SerializeField] private int   simulationSeed         = 42;
+        [SerializeField] private float SIMULATION_TIME_STEP    = 0.02f;
+        [SerializeField] private float MAX_AGENTS              = 0;
+        [SerializeField] private float AGENT_RADIUS            = 1.00f;
+        [SerializeField] private float GOAL_DISTANCE_THRESHOLD = 1.0f;
 
         // ── DINÂMICA DE GRUPOS ─────────────────────────────────────────────
 
@@ -49,14 +49,14 @@ namespace Biocrowds.Core
         [Tooltip("Improvement mínimo de afinidade para um agente TROCAR de grupo. " +
                  "Mais rigoroso que LONE_AGENT_JOIN_THRESHOLD — sair de um grupo " +
                  "tem custo social maior que entrar em um.")]
-        [SerializeField] private readonly float AFFINITY_SWITCH_THRESHOLD = 0.15f;
+        [SerializeField] private float AFFINITY_SWITCH_THRESHOLD = 0.15f;
 
         // Diferença máxima de afinidade entre agente sozinho e média do grupo
         // para que ele entre no grupo.
         [Tooltip("Diferença máxima de afinidade para um agente SOZINHO entrar em " +
                  "um grupo. Mais permissivo que AFFINITY_SWITCH_THRESHOLD — " +
                  "agentes sem grupo aderem com mais facilidade.")]
-        [SerializeField] private readonly float LONE_AGENT_JOIN_THRESHOLD = 0.20f;
+        [SerializeField] private float LONE_AGENT_JOIN_THRESHOLD = 0.20f;
 
         [Header("Terrain Setting")]
         public MeshFilter planeMeshFilter;
@@ -103,6 +103,9 @@ namespace Biocrowds.Core
         {
             get { return _groupAffinityAverages; }
         }
+
+        public Dictionary<int, Vector3> GroupCentroids { get { return _groupCentroids; } }
+        public List<Agent> Agents { get { return _agents; } }
 
         // Pares de grupos cujos centróides estão dentro de GROUP_DETECTION_RADIUS
         private List<(int, int)> _approachingGroupPairs = new List<(int, int)>();
@@ -182,7 +185,9 @@ namespace Biocrowds.Core
                 StaticEditorFlags.NavigationStatic
             );
 
-            UnityEditor.AI.NavMeshBuilder.BuildNavMesh();
+            // NavMesh é pré-bakeado na cena. Rebuilds em runtime podem perder
+            // a área "Walkable" e fazer IsOnNavmesh falhar → 0 auxinas spawnadas.
+            // UnityEditor.AI.NavMeshBuilder.BuildNavMesh();
 
             yield return StartCoroutine(CreateCells());
             yield return StartCoroutine(_markerSpawner.CreateMarkers(_cells, _auxins));
