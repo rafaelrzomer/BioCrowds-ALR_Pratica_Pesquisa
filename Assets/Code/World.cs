@@ -1,4 +1,4 @@
-﻿/// ---------------------------------------------
+/// ---------------------------------------------
 /// Contact: Henry Braun
 /// Brief: Defines the world environment
 /// Thanks to VHLab for original implementation
@@ -49,14 +49,14 @@ namespace Biocrowds.Core
         [Tooltip("Improvement mínimo de afinidade para um agente TROCAR de grupo. " +
                  "Mais rigoroso que LONE_AGENT_JOIN_THRESHOLD — sair de um grupo " +
                  "tem custo social maior que entrar em um.")]
-        [SerializeField] private float AFFINITY_SWITCH_THRESHOLD = 0.15f;
+        [SerializeField] private readonly float AFFINITY_SWITCH_THRESHOLD = 0.15f;
 
         // Diferença máxima de afinidade entre agente sozinho e média do grupo
         // para que ele entre no grupo.
         [Tooltip("Diferença máxima de afinidade para um agente SOZINHO entrar em " +
                  "um grupo. Mais permissivo que AFFINITY_SWITCH_THRESHOLD — " +
                  "agentes sem grupo aderem com mais facilidade.")]
-        [SerializeField] private float LONE_AGENT_JOIN_THRESHOLD = 0.20f;
+        [SerializeField] private readonly float LONE_AGENT_JOIN_THRESHOLD = 0.20f;
 
         [Header("Terrain Setting")]
         public MeshFilter planeMeshFilter;
@@ -193,7 +193,6 @@ namespace Biocrowds.Core
             yield return new WaitForSeconds(1.0f);
 
             _isReady = true;
-            Debug.Break();
         }
 
         // ── CRIAÇÃO DE CÉLULAS ─────────────────────────────────────────────
