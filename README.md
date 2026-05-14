@@ -180,4 +180,4 @@ Versão WebCrowds disponível em <https://github.com/Virtual-Humans-Lab/BioCrowd
 
 ## Licença e Créditos
 
-Trabalho acadêmico sobre a base do **VHLab — PUCRS** (<https://www.inf.pucrs.br/vhlab/>). Mantenedor do fork de trabalho: Rafael R. Zomer. Desenvolvimento atual: Humberto Gomes e Pedro Idalencio.
+Trabalho acadêmico sobre a base do **VHLab — PUCRS** (<https://www.inf.pucrs.br/vhlab/>).
