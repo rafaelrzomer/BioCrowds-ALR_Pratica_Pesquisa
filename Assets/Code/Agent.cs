@@ -40,6 +40,8 @@ namespace Biocrowds.Core
 
         [SerializeField]
         private int goalIndex = 0;
+        public int  GetGoalIndex()       => goalIndex;
+        public void SetGoalIndex(int v)  => goalIndex = v;
         public bool removeWhenGoalReached;
         public float goalDistThreshold = 1.0f;
 
@@ -139,7 +141,15 @@ namespace Biocrowds.Core
             if (_visualAgent == null)
                 _visualAgent = GetComponentInChildren<VisualAgent>();
 
-            _goalPosition = Goal.transform.position;
+            if (Goal == null)
+            {
+                Debug.LogWarning($"{name} spawnado sem Goal. Verifique SpawnArea.initialAgentsGoalList.");
+                _goalPosition = transform.position;
+            }
+            else
+            {
+                _goalPosition = Goal.transform.position;
+            }
             _dirAgentGoal = _goalPosition - transform.position;
 
             if (_visualAgent != null)
@@ -290,6 +300,23 @@ namespace Biocrowds.Core
                 if (_denW < 0.0001f) valorW = 0.0f;
                 _rotation += valorW * _distAuxin[k] * _maxSpeed;
             }
+
+            // Group cohesion: membros não-líderes recebem uma força extra em
+            // direção ao líder eleito do grupo. Líder segue apenas o goal.
+            if (HasGroup && !isGroupLeader && _world != null)
+            {
+                Agent leader = _world.GetGroupLeader(groupId);
+                if (leader != null && leader != this)
+                {
+                    Vector3 toLeader = leader.transform.position - transform.position;
+                    float   distSqr  = toLeader.sqrMagnitude;
+                    // Evita amontoar em cima do líder
+                    if (distSqr > agentRadius * agentRadius)
+                    {
+                        _rotation += groupCohesionStrength * toLeader.normalized * _maxSpeed;
+                    }
+                }
+            }
         }
 
         float CalculaW(int indiceRelacao)
@@ -425,18 +452,6 @@ namespace Biocrowds.Core
                 goalsList[goalsList.Count - 1].transform.position.z
             );
             return Vector2.Distance(agentPos, goalPos) <= goalDistThreshold;
-        }
-
-        /// <summary>
-        /// Switch this agent to a different group
-        /// </summary>
-        public void SwitchGroup(int newGroupId)
-        {
-            if (newGroupId == groupId)
-                return; // already in the target group
-
-            groupId = newGroupId;
-            isGroupLeader = false; // reset leader status when switching groups
         }
     }
 }

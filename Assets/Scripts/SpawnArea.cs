@@ -1,7 +1,10 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
+namespace Biocrowds.Core
+{
 public class SpawnArea : MonoBehaviour
 {
     private Collider      _collider;
@@ -22,7 +25,8 @@ public class SpawnArea : MonoBehaviour
 
     // ── SPAWN CÍCLICO ──────────────────────────────────────────────────────
     [Header("Repeating Spawner Settings")]
-    public float            cycleLenght = 1.0f;
+    [FormerlySerializedAs("cycleLenght")]
+    public float            cycleLength = 1.0f;
     public int              quantitySpawnedEachCycle;
     public bool             repeatingRemoveWhenGoalReached;
     public List<GameObject> repeatingGoalList;
@@ -54,12 +58,12 @@ public class SpawnArea : MonoBehaviour
 
     public void UpdateSpawnCounter(float dt)
     {
-        if (cycleLenght == 0.0f || quantitySpawnedEachCycle == 0) return;
+        if (cycleLength == 0.0f || quantitySpawnedEachCycle == 0) return;
 
         cycleCounter += dt;
-        if (cycleCounter >= cycleLenght)
+        if (cycleCounter >= cycleLength)
         {
-            cycleCounter -= cycleLenght;
+            cycleCounter -= cycleLength;
             cycleReady    = true;
         }
     }
@@ -83,4 +87,5 @@ public class SpawnArea : MonoBehaviour
     {
         _meshRenderer.enabled = _show;
     }
+}
 }
