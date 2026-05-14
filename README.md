@@ -132,13 +132,45 @@ Alinhado ao **Caderno de Pesquisa** do grupo (Google Docs) e às reuniões com a
 - ✅ Agentes solo entram em grupos existentes (`EvaluateSoloAgentsJoiningGroups`).
 - ✅ `GROUP_SWITCH_GRACE_PERIOD` pós-spawn (13/05/2026).
 - ✅ **Cores por grupo** via `GroupColorManager` + `VisualAgent.ApplyGroupColor` (sugerido em 07/05/2026).
+- ✅ **Correção de bugs da troca de grupo (sessão maio/2026):**
+  - Bug 1 — `EvaluateSoloAgentsMeetings` movia o mesmo agente solo para múltiplos grupos no mesmo frame; agora checa `HasGroup` antes de processar e quebra após formar par.
+  - Bug 2 — `EvaluateGroupSwaps` permitia *swap recíproco oscilatório* entre dois grupos; agora coleta decisões nas duas direções e aplica só o bloco maior.
+  - Bug 3 — `EvaluateSoloAgentsJoiningGroups` reprocessava agente já agrupado no mesmo frame; agora pula `soloAgent.HasGroup`.
+  - Bug 4 — `GROUP_PROXIMITY_DISTANCE = 1.0` era inviável (exigia 2 pares a ≤ 0.5 m com `agentRadius = 1.0`); ajustado para `3.0` e comentário corrigido.
+- ✅ **Coesão de grupo via modulação de pesos (alternativa C — alinhada ao paper OCEAN):** seguidor agora blenda `goalDir` com `leaderDir` em `_effectiveGoalDir`; `GetF(k)` usa essa direção efetiva, então o vetor de movimento continua sendo somatório ponderado dos auxins do agente. Preserva a garantia *collision-free* do BioCrowds (Bicho et al.).
+- ✅ **Performance — throttle e `sqrMagnitude`:**
+  - `GROUP_EVAL_INTERVAL = 5`: dinâmica de grupo roda 1 a cada 5 simulation steps (em vez de 50 Hz) → ~80% menos custo nessa seção.
+  - `Vector3.Distance` substituído por `sqrMagnitude` em `AreGroupsNearby`, `EvaluateSoloAgentsMeetings`, `EvaluateSoloAgentsJoiningGroups`.
+  - `AreGroupsNearby` ganhou *early exit* assim que `anyWithinProx && closePairs >= 2`.
 
-### Curto prazo — itens pendentes do caderno
+### Curto prazo — itens entregues nesta sessão
 
-- ⬜ **Marcador visual do líder** (07/05/2026 — *"Adicionar marcador no líder (MUDAR)"*). `isGroupLeader` hoje é só lógico. Opções: halo, escala, ícone acima da cabeça ou tom de cor mais claro via `VisualAgent.ApplyGroupColor`.
-- ⬜ **Analisar `timeSinceSpawn`** (14/05/2026, 7ª reunião). Verificar se o grace period está se comportando como esperado e se o valor `2f` inicial em `Agent` faz sentido.
-- ⬜ **Ajustar problema de frame rate** (14/05/2026, 7ª reunião). Profiling do Update; os loops de grupo são O(N²).
-- ⬜ **Revisão de `GROUP_PROXIMITY_DISTANCE`.** Comentário "increased from 2.0f" inconsistente com valor 1.0 — alinhar com o grupo.
+- ✅ **Marcador visual do líder** (07/05/2026). `VisualAgent.ApplyGroupColor(Color, bool isLeader)` agora aplica brilho (`Color.Lerp → white, 0.4`) e escala (`× 1.25`) quando o agente é líder. `Agent.ApplyGroupColor()` passa a flag; `World.UpdateGroupLeaders` detecta transição de liderança via `_previousLeaders` e re-aplica cor só nos agentes que mudaram de estado.
+- ✅ **Analisar `timeSinceSpawn`** (14/05/2026, 7ª reunião). Default de `Agent.timeSinceSpawn` era `2f`, que **bypassava** o grace period (`GROUP_SWITCH_GRACE_PERIOD = 1.0f`) já no spawn. Corrigido para `0f`; `World.SpawnNewAgentInArea` também reseta explicitamente. Agora agentes esperam `GROUP_SWITCH_GRACE_PERIOD` segundos antes de poder trocar de grupo.
+- ✅ **Frame rate — 2ª rodada (pooling + iteração por grupo):**
+  - Dicionário `_groupsScratch` e pool `_agentListPool` reutilizados a cada eval cycle — zero `new Dictionary` / `new List` por frame nos métodos de grupo.
+  - `UpdateGroupAffinities` reaproveita `_groupsScratch` já montado em `UpdateGroupLeaders`.
+  - `EvaluateGroupProximityAndSwitches` substitui `groups.Values.ToList()` por iteração index-based sobre array snapshot.
+  - `EvaluateGroupSwaps` usa listas pooled `_toSwitchToA` / `_toSwitchToB`.
+  - `EvaluateSoloAgentsMeetings` e `EvaluateSoloAgentsJoiningGroups` compartilham `_soloScratch`; o segundo re-filtra in-place os solos que ganharam grupo no primeiro.
+- ✅ **Limpeza de warnings `CS0414`:**
+  - Removidos `VisualAgent.updated` e `VisualAgent.initialized` (campos não-lidos) e as atribuições correspondentes.
+  - `World._maxAgents` preservado (serializado em `Museu.unity`, `Experiments.unity`, `Test.unity`) e silenciado com `#pragma warning disable 0414`.
+- ✅ **Eliminação do viés contra grupo de menor id:**
+  - `EvaluateGroupSwaps` agora resolve empates de migração com `Random.value < 0.5f` em vez de sempre favorecer `group1 → group2`. Grupos de id baixo (que aparecem primeiro no dicionário) deixam de ser sempre os "doadores" em ties.
+  - `EvaluateSoloAgentsJoiningGroups` agora varre **todos** os grupos próximos e escolhe o de **menor `affinityDifference`** dentro do threshold, em vez de fazer `break` no primeiro compatível. Solos entram no grupo mais afim, não no de menor id.
+- ✅ **Coesão escalada por tamanho do grupo (anti-jam):**
+  - `World._groupSizes` populado a cada eval cycle + accessor público `GetGroupSize(int)`.
+  - `Agent.CalculateDirection` agora aplica `effectiveCohesion = groupCohesionStrength * (1 / sqrt(groupSize))`. Grupos maiores aplicam menos puxão por agente, evitando o "traffic jam" onde muitos seguidores disputam os mesmos auxins na trajetória do líder.
+- ✅ **Diagnóstico opcional de trocas de grupo:**
+  - Campo `DEBUG_LOG_GROUP_CHANGES` (bool) no Inspector de `World`. Quando ligado, loga por eval cycle: `[Groups] cycle: swaps=X newGroups=Y soloJoins=Z groups=N agents=M` (só nos ciclos em que algo aconteceu).
+  - Contadores internos `_switchesThisCycle`, `_newGroupsThisCycle`, `_soloJoinsThisCycle`.
+
+### Curto prazo — pendente
+
+- ⬜ **Reparar `Assets/Prefabs/AgentPrefab.prefab`** — prefab aninhado com `guid: 7dcf00d1126974d4996a7ef29c81ca22` faltando. Correção precisa ser feita pelo Editor Unity (não é seguro editar o YAML do prefab à mão).
+- ⬜ **Migrar `Update` → `FixedUpdate`** para desacoplar simulação do frame de render. Mudança ainda pendente; afeta toda a malha de chamadas e merece teste cuidadoso.
+- ⬜ **Spatial grid via `CurrentCell ± 1`** para `FindNearbyGroupMembers` e proximidade entre grupos. Ganho proporcional a `N`; só vale para multidões grandes.
 
 ### Médio prazo — testes e métricas (caderno)
 

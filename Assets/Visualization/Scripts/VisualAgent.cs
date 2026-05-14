@@ -13,8 +13,6 @@ public class VisualAgent : MonoBehaviour
     public Queue<Vector3> dirMem;
     public float[] qview;
     private Vector3 currPosition;
-    private bool updated;
-    private bool initialized;
     private Vector3 currMoveVect;
     private Vector3 prevMoveVect;
     [SerializeField]
@@ -84,7 +82,6 @@ public class VisualAgent : MonoBehaviour
         currPosition = transform.parent.position;
         qview = moveMem.ToArray();
         dirView = dirMem.ToList();
-        updated = false;
 
     }
 
@@ -97,7 +94,6 @@ public class VisualAgent : MonoBehaviour
         currPosition = new Vector3(pos.x, pos.y, pos.z);
         transform.position = currPosition;
         transform.LookAt(p_agent.goalsList[0].transform.position);
-        updated = false;
         for (int i = 0; i < 15; i++)
         {
             moveMem.Enqueue(0);
@@ -107,7 +103,6 @@ public class VisualAgent : MonoBehaviour
             dirMem.Enqueue((pos - p_agent.goalsList[0].transform.position).normalized);
         }
         dirView = dirMem.ToList();
-        initialized = true;
 
         // Cachear renderers e materiais
         CacheRenderersAndMaterials();
@@ -140,18 +135,37 @@ public class VisualAgent : MonoBehaviour
     /// </summary>
     public void ApplyGroupColor(Color color)
     {
+        ApplyGroupColor(color, false);
+    }
+
+    // leader visual tuning
+    private const float LEADER_BRIGHTEN = 0.4f;   // lerp factor toward white when agent is leader
+    private const float LEADER_SCALE = 1.25f;     // uniform scale multiplier for leaders
+    private Vector3 _baseScale = Vector3.zero;    // cached original scale
+
+    /// <summary>
+    /// Aplica a cor do grupo destacando o líder do grupo (brilho + escala maior).
+    /// </summary>
+    public void ApplyGroupColor(Color color, bool isLeader)
+    {
         if (_materials == null || _materials.Length == 0)
         {
             CacheRenderersAndMaterials();
         }
 
+        Color finalColor = isLeader ? Color.Lerp(color, Color.white, LEADER_BRIGHTEN) : color;
+
         foreach (Material mat in _materials)
         {
             if (mat != null)
-            {
-                mat.color = color;
-            }
+                mat.color = finalColor;
         }
+
+        // cache the original (non-leader) scale once so toggling leader on/off is reversible
+        if (_baseScale == Vector3.zero)
+            _baseScale = transform.localScale;
+
+        transform.localScale = isLeader ? _baseScale * LEADER_SCALE : _baseScale;
     }
 
 

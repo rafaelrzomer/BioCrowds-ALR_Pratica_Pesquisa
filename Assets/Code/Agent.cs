@@ -36,8 +36,11 @@ namespace Biocrowds.Core
         public int groupId = -1;
         public bool HasGroup => groupId >= 0;
 
-        // time since spawn: used to prevent immediate group switching after creation
-        public float timeSinceSpawn = 2f;
+        // time since spawn: used to prevent immediate group switching after creation.
+        // Starts at 0; World increments it each step and the grace period in World checks
+        // timeSinceSpawn < GROUP_SWITCH_GRACE_PERIOD. The previous default of 2f bypassed
+        // the grace period entirely for newly spawned agents.
+        public float timeSinceSpawn = 0f;
 
         // group cohesion strength
         [Range(0f, 1f)]
@@ -122,6 +125,7 @@ namespace Biocrowds.Core
         private Vector3 _rotation; //orientation vector (movement)
         private Vector3 _goalPosition; //goal position
         private Vector3 _dirAgentGoal; //diff between goal and agent
+        private Vector3 _effectiveGoalDir; //goal direction blended with leader direction (group cohesion via weight modulation)
 
         public int auxinCount;
 
@@ -269,22 +273,16 @@ namespace Biocrowds.Core
         //distance of the auxin from the agent
         public void CalculateDirection()
         {
-            //for each agent´s auxin
-            for (int k = 0; k < _distAuxin.Count; k++)
-            {
-                //calculate W
-                float valorW = CalculaW(k);
-                if (_denW < 0.0001f)
-                    valorW = 0.0f;
+            // build the effective goal direction. for non-leader followers, blend the real goal direction
+            // with the direction toward the group leader. cohesion then modulates auxin weights through
+            // GetF (Bicho et al. formula), instead of adding an external force. This preserves the
+            // collision-free guarantee of BioCrowds because movement is still a weighted sum of vectors
+            // toward auxins the agent owns.
+            Vector3 goalDir = _dirAgentGoal.sqrMagnitude > 0.0001f ? _dirAgentGoal.normalized : Vector3.zero;
+            _effectiveGoalDir = goalDir;
 
-                //sum the resulting vector * weight (Wk*Dk)
-                _rotation += valorW * _distAuxin[k] * _maxSpeed;
-            }
-
-            // add group cohesion force - follow the group leader
             if (HasGroup && !isGroupLeader && _nearbyGroupMembers.Count > 0)
             {
-                // find the group leader among nearby members
                 Agent leader = null;
                 foreach (Agent groupMember in _nearbyGroupMembers)
                 {
@@ -295,18 +293,39 @@ namespace Biocrowds.Core
                     }
                 }
 
-                // if leader is nearby, follow them
                 if (leader != null)
                 {
-                    Vector3 followDirection = (leader.transform.position - transform.position).normalized;
-                    float distanceToLeader = Vector3.Distance(transform.position, leader.transform.position);
-
-                    // only follow if at a comfortable distance (avoid overcrowding)
-                    if (distanceToLeader > agentRadius * 1.5f)
+                    Vector3 toLeader = leader.transform.position - transform.position;
+                    float distSqr = toLeader.sqrMagnitude;
+                    float minDist = agentRadius * 1.5f;
+                    if (distSqr > minDist * minDist && goalDir.sqrMagnitude > 0.0001f)
                     {
-                        _rotation += groupCohesionStrength * followDirection * _maxSpeed;
+                        Vector3 leaderDir = toLeader / Mathf.Sqrt(distSqr);
+
+                        // scale cohesion by 1/sqrt(groupSize): larger groups create less per-agent
+                        // pull toward the leader, preventing density jams where many followers fight
+                        // for the same auxins along the leader's path.
+                        int groupSize = _world != null ? _world.GetGroupSize(groupId) : 1;
+                        float sizeScale = groupSize > 1 ? 1f / Mathf.Sqrt(groupSize) : 1f;
+                        float effectiveCohesion = groupCohesionStrength * sizeScale;
+
+                        Vector3 blended = (1f - effectiveCohesion) * goalDir + effectiveCohesion * leaderDir;
+                        if (blended.sqrMagnitude > 0.0001f)
+                            _effectiveGoalDir = blended.normalized;
                     }
                 }
+            }
+
+            //for each agent´s auxin
+            for (int k = 0; k < _distAuxin.Count; k++)
+            {
+                //calculate W
+                float valorW = CalculaW(k);
+                if (_denW < 0.0001f)
+                    valorW = 0.0f;
+
+                //sum the resulting vector * weight (Wk*Dk)
+                _rotation += valorW * _distAuxin[k] * _maxSpeed;
             }
         }
 
@@ -335,15 +354,19 @@ namespace Biocrowds.Core
         //calculate F (F is part of weight formula)
         float GetF(int pRelationIndex)
         {
-            //distance between auxin´s distance and origin 
+            //distance between auxin´s distance and origin
             float Ymodule = Vector3.Distance(_distAuxin[pRelationIndex], Vector3.zero);
-            //distance between goal vector and origin
-            float Xmodule = _dirAgentGoal.normalized.magnitude;
+            //distance between effective goal vector and origin (already normalized in CalculateDirection)
+            float Xmodule = _effectiveGoalDir.magnitude;
 
-            float dot = Vector3.Dot(_distAuxin[pRelationIndex], _dirAgentGoal.normalized);
+            float dot = Vector3.Dot(_distAuxin[pRelationIndex], _effectiveGoalDir);
 
             if (Ymodule < 0.00001f)
                 return 0.0f;
+
+            // if no effective direction (e.g. agent already at goal), fall back to pure distance weighting
+            if (Xmodule < 0.00001f)
+                return (float)(1.0 / (1.0 + Ymodule));
 
             //return the formula, defined in thesis
             return (float)((1.0 / (1.0 + Ymodule)) * (1.0 + ((dot) / (Xmodule * Ymodule))));
@@ -540,16 +563,16 @@ namespace Biocrowds.Core
         }
 
         /// <summary>
-        /// Aplica a cor correspondente ao grupo do agente
+        /// Aplica a cor correspondente ao grupo do agente, destacando o líder visualmente.
         /// </summary>
         public void ApplyGroupColor()
         {
             if (_visualAgent == null) return;
-            
+
             if (GroupColorManager.Instance != null)
             {
                 Color groupColor = GroupColorManager.Instance.GetGroupColor(groupId);
-                _visualAgent.ApplyGroupColor(groupColor);
+                _visualAgent.ApplyGroupColor(groupColor, isGroupLeader);
             }
         }
     }

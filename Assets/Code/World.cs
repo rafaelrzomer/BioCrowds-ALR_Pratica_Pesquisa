@@ -36,7 +36,7 @@ namespace Biocrowds.Core
 
         // group interaction settings
         [SerializeField] private bool ALLOW_GROUP_CHANGES = true; // master switch for all group changes
-        [SerializeField] private float GROUP_PROXIMITY_DISTANCE = 1.0f; // increased from 2.0f to be much more restrictive
+        [SerializeField] private float GROUP_PROXIMITY_DISTANCE = 3.0f; // detection radius between groups; half of this is also used as "close pair" threshold
         [SerializeField] private float GROUP_SWITCH_GRACE_PERIOD = 1.0f; // time after spawn before group changes are allowed
         [Range(0f, 1f)]
         [SerializeField] private float AFFINITY_SWITCH_THRESHOLD = 0.3f; // increased from 0.2f to be much more restrictive
@@ -61,9 +61,11 @@ namespace Biocrowds.Core
         {
             get { return _offset; }
         }
-        //number of agents in the scene
-        [SerializeField]
-        private int _maxAgents = 30;
+        // legacy cap; kept because it is serialized in existing scenes (Museu, Experiments, Test).
+        // The active cap is MAX_AGENTS above. Field is intentionally unread.
+#pragma warning disable 0414
+        [SerializeField] private int _maxAgents = 30;
+#pragma warning restore 0414
 
         //agent prefab
         [SerializeField]
@@ -88,6 +90,25 @@ namespace Biocrowds.Core
         private int _newAgentID = 0;
         private int _nextGroupId = 0; // for creating new groups when solo agents meet
 
+        // group dynamics do not need to run every simulation step; throttle them
+        [SerializeField] private int GROUP_EVAL_INTERVAL = 5;
+        private int _groupEvalCounter = 0;
+
+        // diagnostic: when true, World logs a per-eval-cycle summary of group switches.
+        // Toggle in the Inspector to inspect whether dynamics are actually firing.
+        [SerializeField] private bool DEBUG_LOG_GROUP_CHANGES = false;
+        private int _switchesThisCycle = 0;
+        private int _newGroupsThisCycle = 0;
+        private int _soloJoinsThisCycle = 0;
+
+        // reusable scratch dictionaries / lists for group evaluation to avoid per-frame GC allocations
+        private Dictionary<int, List<Agent>> _groupsScratch;
+        private Stack<List<Agent>> _agentListPool;
+        private List<Agent> _soloScratch;
+        private HashSet<Agent> _previousLeaders;
+        private List<Agent> _toSwitchToA;
+        private List<Agent> _toSwitchToB;
+
         public List<Cell> Cells
         {
             get { return _cells; }
@@ -106,6 +127,14 @@ namespace Biocrowds.Core
         public Dictionary<int, float> GroupAffinityAverages
         {
             get { return _groupAffinityAverages; }
+        }
+
+        // group sizes: groupId -> number of members (updated each eval cycle)
+        private Dictionary<int, int> _groupSizes = new Dictionary<int, int>();
+        public int GetGroupSize(int gid)
+        {
+            int n;
+            return _groupSizes.TryGetValue(gid, out n) ? n : 0;
         }
 
         //max auxins on the ground
@@ -370,20 +399,35 @@ namespace Biocrowds.Core
             for (int i = 0; i < _agents.Count; i++)
                 _agents[i].FindNearbyGroupMembers(_agents);
 
-            // update group leaders (agent with highest dominance in each group)
-            UpdateGroupLeaders();
+            // throttle group dynamics: social decisions do not need 50 Hz
+            _groupEvalCounter++;
+            if (_groupEvalCounter >= GROUP_EVAL_INTERVAL)
+            {
+                _groupEvalCounter = 0;
+                _switchesThisCycle = 0;
+                _newGroupsThisCycle = 0;
+                _soloJoinsThisCycle = 0;
 
-            // update group affinity averages
-            UpdateGroupAffinities();
+                // update group leaders (agent with highest dominance in each group)
+                UpdateGroupLeaders();
 
-            // check for group proximity and potential group switches
-            EvaluateGroupProximityAndSwitches();
+                // update group affinity averages
+                UpdateGroupAffinities();
 
-            // evaluate solo agents meeting each other and forming new groups
-            EvaluateSoloAgentsMeetings();
+                // check for group proximity and potential group switches
+                EvaluateGroupProximityAndSwitches();
 
-            // evaluate solo agents joining existing groups
-            EvaluateSoloAgentsJoiningGroups();
+                // evaluate solo agents meeting each other and forming new groups
+                EvaluateSoloAgentsMeetings();
+
+                // evaluate solo agents joining existing groups
+                EvaluateSoloAgentsJoiningGroups();
+
+                if (DEBUG_LOG_GROUP_CHANGES && (_switchesThisCycle > 0 || _newGroupsThisCycle > 0 || _soloJoinsThisCycle > 0))
+                {
+                    Debug.Log($"[Groups] cycle: swaps={_switchesThisCycle} newGroups={_newGroupsThisCycle} soloJoins={_soloJoinsThisCycle} groups={_groupSizes.Count} agents={_agents.Count}");
+                }
+            }
 
             for (int i = 0; i < _agents.Count; i++)
                 _agents[i].auxinCount = _agents[i].Auxins.Count;
@@ -503,6 +547,7 @@ namespace Biocrowds.Core
                 newAgent.goalsWaitList = _area.repeatingWaitList;
             }
             newAgent.groupId = _area.groupId;
+            newAgent.timeSinceSpawn = 0f; // enforce grace period from spawn moment
             newAgent.World = this;
             _agents.Add(newAgent);
         }
@@ -526,26 +571,38 @@ namespace Biocrowds.Core
 
         private void UpdateGroupLeaders()
         {
-            // reset all leaders
+            // remember the previous leadership state so we only refresh visuals for agents whose state changed
+            // (calling ApplyGroupColor on every agent every eval cycle is fine, but this is cheaper).
+            // we use an instance HashSet of previous leaders, allocated once.
+            if (_previousLeaders == null) _previousLeaders = new HashSet<Agent>();
+            _previousLeaders.Clear();
             foreach (Agent agent in _agents)
             {
+                if (agent.isGroupLeader)
+                    _previousLeaders.Add(agent);
                 agent.isGroupLeader = false;
             }
 
-            // group agents by groupId
-            var groups = new Dictionary<int, List<Agent>>();
+            // group agents by groupId (reuse pooled dictionary; see _groupsScratch)
+            if (_groupsScratch == null) _groupsScratch = new Dictionary<int, List<Agent>>();
+            ClearGroupsScratch();
+
             foreach (Agent agent in _agents)
             {
                 if (agent.HasGroup)
                 {
-                    if (!groups.ContainsKey(agent.groupId))
-                        groups[agent.groupId] = new List<Agent>();
-                    groups[agent.groupId].Add(agent);
+                    List<Agent> bucket;
+                    if (!_groupsScratch.TryGetValue(agent.groupId, out bucket))
+                    {
+                        bucket = GetPooledAgentList();
+                        _groupsScratch[agent.groupId] = bucket;
+                    }
+                    bucket.Add(agent);
                 }
             }
 
             // for each group, find the agent with highest dominance
-            foreach (var group in groups)
+            foreach (var group in _groupsScratch)
             {
                 Agent leader = null;
                 float maxDominance = -1f;
@@ -560,41 +617,65 @@ namespace Biocrowds.Core
                 }
 
                 if (leader != null)
-                {
                     leader.isGroupLeader = true;
-                }
             }
+
+            // refresh visuals only when leadership flag flipped
+            foreach (Agent agent in _agents)
+            {
+                bool wasLeader = _previousLeaders.Contains(agent);
+                if (wasLeader != agent.isGroupLeader)
+                    agent.ApplyGroupColor();
+            }
+        }
+
+        // ---- pooled list helpers ----
+        private List<Agent> GetPooledAgentList()
+        {
+            if (_agentListPool == null) _agentListPool = new Stack<List<Agent>>();
+            if (_agentListPool.Count > 0)
+            {
+                var list = _agentListPool.Pop();
+                list.Clear();
+                return list;
+            }
+            return new List<Agent>();
+        }
+
+        private void ReleaseAgentList(List<Agent> list)
+        {
+            if (list == null) return;
+            list.Clear();
+            if (_agentListPool == null) _agentListPool = new Stack<List<Agent>>();
+            _agentListPool.Push(list);
+        }
+
+        private void ClearGroupsScratch()
+        {
+            if (_groupsScratch == null) return;
+            foreach (var kv in _groupsScratch)
+                ReleaseAgentList(kv.Value);
+            _groupsScratch.Clear();
         }
 
         private void UpdateGroupAffinities()
         {
-            // clear previous averages
+            // reuse the dictionary already built by UpdateGroupLeaders this eval cycle
             _groupAffinityAverages.Clear();
+            _groupSizes.Clear();
 
-            // group agents by groupId
-            var groups = new Dictionary<int, List<Agent>>();
-            foreach (Agent agent in _agents)
-            {
-                if (agent.HasGroup)
-                {
-                    if (!groups.ContainsKey(agent.groupId))
-                        groups[agent.groupId] = new List<Agent>();
-                    groups[agent.groupId].Add(agent);
-                }
-            }
+            if (_groupsScratch == null)
+                return;
 
-            // for each group, calculate the average affinity
-            foreach (var group in groups)
+            foreach (var group in _groupsScratch)
             {
+                int count = group.Value.Count;
                 float totalAffinity = 0f;
-                
                 foreach (Agent agent in group.Value)
-                {
                     totalAffinity += agent.affinity;
-                }
 
-                float averageAffinity = group.Value.Count > 0 ? totalAffinity / group.Value.Count : 0f;
-                _groupAffinityAverages[group.Key] = averageAffinity;
+                _groupAffinityAverages[group.Key] = count > 0 ? totalAffinity / count : 0f;
+                _groupSizes[group.Key] = count;
             }
         }
 
@@ -603,57 +684,54 @@ namespace Biocrowds.Core
             if (!ALLOW_GROUP_CHANGES)
                 return;
 
-            // group agents by groupId
-            var groups = new Dictionary<int, List<Agent>>();
-            foreach (Agent agent in _agents)
-            {
-                if (agent.HasGroup)
-                {
-                    if (!groups.ContainsKey(agent.groupId))
-                        groups[agent.groupId] = new List<Agent>();
-                    groups[agent.groupId].Add(agent);
-                }
-            }
+            if (_groupsScratch == null || _groupsScratch.Count < 2)
+                return;
 
-            // check proximity between all pairs of groups
-            var groupList = groups.Values.ToList();
-            for (int i = 0; i < groupList.Count; i++)
+            // snapshot the group lists into a flat array to iterate index-based without LINQ allocation
+            int n = _groupsScratch.Count;
+            var groupArr = new List<Agent>[n];
+            int idx = 0;
+            foreach (var kv in _groupsScratch)
+                groupArr[idx++] = kv.Value;
+
+            for (int i = 0; i < n; i++)
             {
-                for (int j = i + 1; j < groupList.Count; j++)
+                for (int j = i + 1; j < n; j++)
                 {
-                    if (AreGroupsNearby(groupList[i], groupList[j]))
-                    {
-                        // evaluate potential switches between these two groups
-                        EvaluateGroupSwaps(groupList[i], groupList[j]);
-                    }
+                    if (AreGroupsNearby(groupArr[i], groupArr[j]))
+                        EvaluateGroupSwaps(groupArr[i], groupArr[j]);
                 }
             }
         }
 
         private bool AreGroupsNearby(List<Agent> group1, List<Agent> group2)
         {
-            // find the minimum distance between any two agents from different groups
-            float minDistance = float.MaxValue;
+            // squared thresholds to avoid sqrt in distance comparisons
+            float proxSqr = GROUP_PROXIMITY_DISTANCE * GROUP_PROXIMITY_DISTANCE;
+            float halfProxSqr = (GROUP_PROXIMITY_DISTANCE * 0.5f) * (GROUP_PROXIMITY_DISTANCE * 0.5f);
+
+            bool anyWithinProx = false;
             int closePairs = 0;
 
             foreach (Agent agent1 in group1)
             {
                 foreach (Agent agent2 in group2)
                 {
-                    float distance = Vector3.Distance(agent1.transform.position, agent2.transform.position);
-                    if (distance < minDistance)
-                        minDistance = distance;
+                    float distSqr = (agent1.transform.position - agent2.transform.position).sqrMagnitude;
 
-                    // count how many agent pairs are very close (within half the proximity distance)
-                    if (distance <= GROUP_PROXIMITY_DISTANCE * 0.5f)
+                    if (!anyWithinProx && distSqr <= proxSqr)
+                        anyWithinProx = true;
+
+                    if (distSqr <= halfProxSqr)
+                    {
                         closePairs++;
+                        if (anyWithinProx && closePairs >= 2)
+                            return true; // early exit
+                    }
                 }
             }
 
-            // groups are considered nearby if:
-            // 1. At least one pair is within proximity distance, AND
-            // 2. At least 2 pairs are within half proximity distance (more restrictive)
-            return minDistance <= GROUP_PROXIMITY_DISTANCE && closePairs >= 2;
+            return anyWithinProx && closePairs >= 2;
         }
 
         private void EvaluateGroupSwaps(List<Agent> group1, List<Agent> group2)
@@ -667,22 +745,48 @@ namespace Biocrowds.Core
             float group1Affinity = _groupAffinityAverages.ContainsKey(groupId1) ? _groupAffinityAverages[groupId1] : 0f;
             float group2Affinity = _groupAffinityAverages.ContainsKey(groupId2) ? _groupAffinityAverages[groupId2] : 0f;
 
-            // check if agents from group1 should join group2
-            foreach (Agent agent in group1.ToList()) // ToList() to avoid modification during iteration
+            // collect decisions in both directions first, then resolve to avoid reciprocal-swap oscillation
+            if (_toSwitchToA == null) _toSwitchToA = new List<Agent>();
+            if (_toSwitchToB == null) _toSwitchToB = new List<Agent>();
+            _toSwitchToA.Clear(); // agents migrating to group2
+            _toSwitchToB.Clear(); // agents migrating to group1
+
+            foreach (Agent agent in group1)
             {
                 if (ShouldAgentSwitchGroup(agent, group1Affinity, group2Affinity, groupId2))
-                {
-                    agent.SwitchGroup(groupId2);
-                }
+                    _toSwitchToA.Add(agent);
             }
 
-            // check if agents from group2 should join group1
-            foreach (Agent agent in group2.ToList())
+            foreach (Agent agent in group2)
             {
                 if (ShouldAgentSwitchGroup(agent, group2Affinity, group1Affinity, groupId1))
-                {
-                    agent.SwitchGroup(groupId1);
-                }
+                    _toSwitchToB.Add(agent);
+            }
+
+            // if both directions want to migrate, keep only the larger block; ties are broken
+            // randomly to avoid systemic bias against lower-id groups (which always show up first
+            // in the dictionary iteration and would otherwise always lose in ties).
+            if (_toSwitchToA.Count > 0 && _toSwitchToB.Count > 0)
+            {
+                if (_toSwitchToA.Count > _toSwitchToB.Count)
+                    _toSwitchToB.Clear();
+                else if (_toSwitchToB.Count > _toSwitchToA.Count)
+                    _toSwitchToA.Clear();
+                else if (Random.value < 0.5f)
+                    _toSwitchToB.Clear();
+                else
+                    _toSwitchToA.Clear();
+            }
+
+            for (int i = 0; i < _toSwitchToA.Count; i++)
+            {
+                _toSwitchToA[i].SwitchGroup(groupId2);
+                _switchesThisCycle++;
+            }
+            for (int i = 0; i < _toSwitchToB.Count; i++)
+            {
+                _toSwitchToB[i].SwitchGroup(groupId1);
+                _switchesThisCycle++;
             }
         }
 
@@ -706,31 +810,37 @@ namespace Biocrowds.Core
             if (!ALLOW_GROUP_CHANGES)
                 return;
 
-            // find all solo agents (those without a group)
-            List<Agent> soloAgents = new List<Agent>();
+            if (_soloScratch == null) _soloScratch = new List<Agent>();
+            _soloScratch.Clear();
             foreach (Agent agent in _agents)
             {
                 if (!agent.HasGroup)
-                    soloAgents.Add(agent);
+                    _soloScratch.Add(agent);
             }
+            List<Agent> soloAgents = _soloScratch;
 
             if (soloAgents.Count < 2)
                 return; // need at least 2 solo agents to form a pair
 
+            float proxSqr = GROUP_PROXIMITY_DISTANCE * GROUP_PROXIMITY_DISTANCE;
+
             // check all pairs of solo agents
             for (int i = 0; i < soloAgents.Count; i++)
             {
+                Agent agent1 = soloAgents[i];
+                if (agent1.HasGroup) continue; // already grouped earlier in this frame
+
                 for (int j = i + 1; j < soloAgents.Count; j++)
                 {
-                    Agent agent1 = soloAgents[i];
                     Agent agent2 = soloAgents[j];
+                    if (agent2.HasGroup) continue;
 
                     if (agent1.timeSinceSpawn < GROUP_SWITCH_GRACE_PERIOD || agent2.timeSinceSpawn < GROUP_SWITCH_GRACE_PERIOD)
                         continue;
 
-                    // check if they are close
-                    float distance = Vector3.Distance(agent1.transform.position, agent2.transform.position);
-                    if (distance <= GROUP_PROXIMITY_DISTANCE)
+                    // squared distance to avoid sqrt
+                    float distSqr = (agent1.transform.position - agent2.transform.position).sqrMagnitude;
+                    if (distSqr <= proxSqr)
                     {
                         // check if their affinities are similar
                         float affinityDifference = Mathf.Abs(agent1.affinity - agent2.affinity);
@@ -740,6 +850,8 @@ namespace Biocrowds.Core
                             int newGroupId = _nextGroupId++;
                             agent1.SwitchGroup(newGroupId);
                             agent2.SwitchGroup(newGroupId);
+                            _newGroupsThisCycle++;
+                            break; // agent1 paired; move to next i
                         }
                     }
                 }
@@ -751,72 +863,99 @@ namespace Biocrowds.Core
             if (!ALLOW_GROUP_CHANGES)
                 return;
 
-            // find all solo agents (those without a group)
-            List<Agent> soloAgents = new List<Agent>();
-            foreach (Agent agent in _agents)
+            // reuse the solo scratch populated by EvaluateSoloAgentsMeetings (still fresh: meetings
+            // only switched a subset of these to a group; those skipped below via HasGroup).
+            if (_soloScratch == null) _soloScratch = new List<Agent>();
+            // re-filter in case meetings already moved some
+            int kept = 0;
+            for (int i = 0; i < _soloScratch.Count; i++)
             {
-                if (!agent.HasGroup)
-                    soloAgents.Add(agent);
+                if (!_soloScratch[i].HasGroup)
+                {
+                    _soloScratch[kept++] = _soloScratch[i];
+                }
             }
+            _soloScratch.RemoveRange(kept, _soloScratch.Count - kept);
+            List<Agent> soloAgents = _soloScratch;
 
             if (soloAgents.Count == 0)
                 return; // no solo agents to process
 
-            // find all groups
-            var groups = new Dictionary<int, List<Agent>>();
+            // groups may have changed after EvaluateGroupSwaps/Meetings, rebuild from scratch using pool
+            ClearGroupsScratch();
             foreach (Agent agent in _agents)
             {
                 if (agent.HasGroup)
                 {
-                    if (!groups.ContainsKey(agent.groupId))
-                        groups[agent.groupId] = new List<Agent>();
-                    groups[agent.groupId].Add(agent);
+                    List<Agent> bucket;
+                    if (!_groupsScratch.TryGetValue(agent.groupId, out bucket))
+                    {
+                        bucket = GetPooledAgentList();
+                        _groupsScratch[agent.groupId] = bucket;
+                    }
+                    bucket.Add(agent);
                 }
             }
+            var groups = _groupsScratch;
 
             if (groups.Count == 0)
                 return; // no groups available to join
 
-            // for each solo agent, check if they should join any nearby group
+            float proxSqr = GROUP_PROXIMITY_DISTANCE * GROUP_PROXIMITY_DISTANCE;
+            float halfProxSqr = (GROUP_PROXIMITY_DISTANCE * 0.5f) * (GROUP_PROXIMITY_DISTANCE * 0.5f);
+
+            // for each solo agent, scan all candidate groups and pick the one with the smallest
+            // affinity difference (within threshold). Avoids the prior "first match wins" bias
+            // that always preferred the lowest-id group in the dictionary iteration order.
             foreach (Agent soloAgent in soloAgents)
             {
+                // skip if agent already gained a group earlier this frame (via EvaluateSoloAgentsMeetings)
+                if (soloAgent.HasGroup)
+                    continue;
+
                 if (soloAgent.timeSinceSpawn < GROUP_SWITCH_GRACE_PERIOD)
                     continue;
 
+                int bestGroupId = -1;
+                float bestDiff = float.MaxValue;
+
                 foreach (var group in groups)
                 {
-                    // check if group is nearby - more restrictive check
+                    // check if group is nearby - squared distances to avoid sqrt
                     List<Agent> groupAgents = group.Value;
-                    float minDistance = float.MaxValue;
+                    bool anyWithinProx = false;
                     int closeAgents = 0;
 
                     foreach (Agent groupAgent in groupAgents)
                     {
-                        float distance = Vector3.Distance(soloAgent.transform.position, groupAgent.transform.position);
-                        if (distance < minDistance)
-                            minDistance = distance;
+                        float distSqr = (soloAgent.transform.position - groupAgent.transform.position).sqrMagnitude;
+                        if (!anyWithinProx && distSqr <= proxSqr)
+                            anyWithinProx = true;
 
-                        // count how many group agents are close to the solo agent
-                        if (distance <= GROUP_PROXIMITY_DISTANCE * 0.5f)
+                        if (distSqr <= halfProxSqr)
                             closeAgents++;
                     }
 
                     // solo agent can join group if:
                     // 1. At least one group agent is within proximity distance, AND
                     // 2. At least 2 group agents are within half proximity distance
-                    if (minDistance <= GROUP_PROXIMITY_DISTANCE && closeAgents >= 2)
+                    if (anyWithinProx && closeAgents >= 2)
                     {
-                        // group is nearby, check affinity compatibility
                         float groupAffinity = _groupAffinityAverages.ContainsKey(group.Key) ? _groupAffinityAverages[group.Key] : 0f;
                         float affinityDifference = Mathf.Abs(soloAgent.affinity - groupAffinity);
 
-                        // if affinity difference is small enough, join the group
-                        if (affinityDifference <= AFFINITY_SWITCH_THRESHOLD)
+                        if (affinityDifference <= AFFINITY_SWITCH_THRESHOLD && affinityDifference < bestDiff)
                         {
-                            soloAgent.SwitchGroup(group.Key);
-                            break; // solo agent joins the first compatible group found
+                            bestDiff = affinityDifference;
+                            bestGroupId = group.Key;
                         }
                     }
+                }
+
+                if (bestGroupId >= 0)
+                {
+                    soloAgent.SwitchGroup(bestGroupId);
+                    _soloJoinsThisCycle++;
                 }
             }
         }
