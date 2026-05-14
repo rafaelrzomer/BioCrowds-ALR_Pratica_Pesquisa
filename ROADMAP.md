@@ -27,7 +27,9 @@ Cada item deste roadmap é justificado por uma fonte. Notação:
 |---|---|---|
 | BioCrowds core (auxinas, células, captura, movimento) | `Agent.CalculateDirection`, `Agent.FindNearAuxins`, `World.CreateCells` | ✅ herdado de Bicho et al. [B] |
 | `groupId` por agente e por `SpawnArea` | `Agent.groupId`, `SpawnArea.groupId` | ✅ |
-| Afinidade individual aleatória | `World.SpawnNewAgentInArea` (`Random.Range(0f,1f)`) | 🚧 funciona, mas é ruído sem coerência intra-grupo |
+| Afinidade coerente por grupo no spawn | `World.SpawnNewAgentInArea` + `SpawnArea.groupAffinityMean/Spread` | ✅ amostragem uniforme mean±spread (commit `206a98c`) |
+| Seed determinístico (`Random.InitState`) | `World.simulationSeed` + `Awake()` | ✅ log do seed no console (commit `206a98c`) |
+| Thresholds diferenciados (adesão > troca) | `LONE_AGENT_JOIN_THRESHOLD = 0.20`, `AFFINITY_SWITCH_THRESHOLD = 0.15` | ✅ tooltips explicativos (commit `206a98c`) |
 | Dominância individual | `Agent.dominance` | 🚧 só usada para eleger líder local |
 | Média de afinidade do grupo | `World.ComputeGroupData` | ✅ |
 | Centróide do grupo | `World._groupCentroids` | ✅ |
@@ -66,7 +68,7 @@ Este roadmap responde a essas perguntas em três fases.
 > Sem reprodutibilidade e sem métrica, qualquer mudança feita nas Fases B/C é inverificável.
 > A Fase A precisa estar 100% completa antes de prosseguir.
 
-### A.1 Reprodutibilidade — seed fixa
+### A.1 Reprodutibilidade — seed fixa ✅ (commit `206a98c`)
 
 **Por quê:** [C] espera resultados reproduzíveis para comparar runs com parâmetros diferentes. Hoje `Random.Range` usa o estado global da Unity, que muda a cada execução.
 
@@ -83,7 +85,7 @@ Este roadmap responde a essas perguntas em três fases.
 
 ---
 
-### A.2 Afinidade coerente por grupo no spawn
+### A.2 Afinidade coerente por grupo no spawn ✅ (commit `206a98c`)
 
 **Por quê:** hoje `Agent.affinity = Random.Range(0f, 1f)` independente do grupo. A "média do grupo" calculada por `ComputeGroupData` se aproxima de **0.5 para qualquer grupo grande** (lei dos grandes números). Resultado: a troca por afinidade é dominada por ruído e o paper [P] não pode ser reproduzido. O paper assume que agentes do mesmo grupo nascem **socialmente similares**.
 
@@ -107,7 +109,7 @@ Este roadmap responde a essas perguntas em três fases.
 
 ---
 
-### A.3 Diferenciação de thresholds
+### A.3 Diferenciação de thresholds ✅ (commit `206a98c`)
 
 **Por quê:** [P] sugere que aderir a um grupo (lone agent → grupo) e sair de um grupo (troca) têm custos sociais diferentes. Hoje `AFFINITY_SWITCH_THRESHOLD` e `LONE_AGENT_JOIN_THRESHOLD` são iguais (0.15), o que não modela essa assimetria.
 
@@ -428,9 +430,9 @@ Cada cena tem `simulationSeed` fixo e parâmetros documentados em comentário no
 
 | # | Tarefa | Fase | Sessões | Risco |
 |---|---|---|---|---|
-| 1  | A.1 Seed fixa | A | 0.5 | baixo |
-| 2  | A.2 Affinity coerente | A | 1   | baixo |
-| 3  | A.3 Thresholds diferenciados | A | 0.3 | baixo |
+| 1  | A.1 Seed fixa ✅ | A | 0.5 | baixo |
+| 2  | A.2 Affinity coerente ✅ | A | 1   | baixo |
+| 3  | A.3 Thresholds diferenciados ✅ | A | 0.3 | baixo |
 | 4  | A.4 Logger CSV | A | 2   | médio |
 | 5  | A.5 Cenário de validação | A | 1   | baixo |
 | 6  | B.5 Goal em nível de grupo | B | 1.5 | médio |
