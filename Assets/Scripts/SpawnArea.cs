@@ -16,6 +16,15 @@ public class SpawnArea : MonoBehaviour
     // -1 = agentes sem grupo (vão procurar um grupo por afinidade)
     public int groupId = -1;
 
+    // Agentes do mesmo grupo nascem com afinidade próxima da média, com
+    // pequena variação. Reproduz a hipótese do paper Musse & Thalmann (1997)
+    // de que membros de um grupo são socialmente similares.
+    [Header("Group Affinity")]
+    [Tooltip("Média de afinidade dos agentes spawnados nesta área.")]
+    [Range(0f, 1f)]   public float groupAffinityMean   = 0.5f;
+    [Tooltip("Variação máxima em torno da média (uniform ±spread).")]
+    [Range(0f, 0.5f)] public float groupAffinitySpread = 0.1f;
+
     // ── SPAWN INICIAL ──────────────────────────────────────────────────────
     [Header("Initial Spawner Settings")]
     public int              initialNumberOfAgents;

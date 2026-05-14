@@ -27,10 +27,13 @@ namespace Biocrowds.Core
         [Header("Simulation Configuration")]
         public SimulationConfiguration.MarkerSpawnMethod markerSpawnMethod;
 
-        [SerializeField] private float SIMULATION_TIME_STEP   = 0.02f;
-        [SerializeField] private float MAX_AGENTS             = 0;
-        [SerializeField] private float AGENT_RADIUS           = 1.00f;
-        [SerializeField] private float GOAL_DISTANCE_THRESHOLD = 1.0f;
+        [Tooltip("Seed do RNG da Unity. Mesmo seed = trajetórias idênticas. " +
+                 "Trocar o valor produz um run diferente, reproduzível.")]
+        [SerializeField] private readonly int simulationSeed = 42;
+        [SerializeField] private readonly float SIMULATION_TIME_STEP   = 0.02f;
+        [SerializeField] private readonly float MAX_AGENTS             = 0;
+        [SerializeField] private readonly float AGENT_RADIUS           = 1.00f;
+        [SerializeField] private readonly float GOAL_DISTANCE_THRESHOLD = 1.0f;
 
         // ── DINÂMICA DE GRUPOS ─────────────────────────────────────────────
 
@@ -43,11 +46,17 @@ namespace Biocrowds.Core
         // Diferença mínima de afinidade (entre grupo atual e grupo candidato)
         // para que o agente efetivamente troque de grupo.
         // Ex: 0.15 significa que o novo grupo precisa ser pelo menos 15% mais compatível.
+        [Tooltip("Improvement mínimo de afinidade para um agente TROCAR de grupo. " +
+                 "Mais rigoroso que LONE_AGENT_JOIN_THRESHOLD — sair de um grupo " +
+                 "tem custo social maior que entrar em um.")]
         [SerializeField] private float AFFINITY_SWITCH_THRESHOLD = 0.15f;
 
         // Diferença máxima de afinidade entre agente sozinho e média do grupo
         // para que ele entre no grupo.
-        [SerializeField] private float LONE_AGENT_JOIN_THRESHOLD = 0.15f;
+        [Tooltip("Diferença máxima de afinidade para um agente SOZINHO entrar em " +
+                 "um grupo. Mais permissivo que AFFINITY_SWITCH_THRESHOLD — " +
+                 "agentes sem grupo aderem com mais facilidade.")]
+        [SerializeField] private float LONE_AGENT_JOIN_THRESHOLD = 0.20f;
 
         [Header("Terrain Setting")]
         public MeshFilter planeMeshFilter;
@@ -114,6 +123,11 @@ namespace Biocrowds.Core
 
         private void Awake()
         {
+            // Reprodutibilidade: fixa o RNG global da Unity antes de qualquer
+            // Random.Range ou Random.value. Mesmo seed = mesmas trajetórias.
+            Random.InitState(simulationSeed);
+            Debug.Log($"[World] simulationSeed = {simulationSeed}");
+
             _newAgentID = 0;
 
             if (spawnAreas.Count == 0)
@@ -136,8 +150,8 @@ namespace Biocrowds.Core
                     Mathf.Round(planeMeshFilter.transform.position.x),
                     Mathf.Round(planeMeshFilter.transform.position.z)
                 );
-                _offset.x -= (_dimension.x / 2f);
-                _offset.y -= (_dimension.y / 2f);
+                _offset.x -= _dimension.x / 2f;
+                _offset.y -= _dimension.y / 2f;
 
                 planeMeshFilter.gameObject.SetActive(false);
             }
@@ -193,8 +207,8 @@ namespace Biocrowds.Core
             {
                 for (int j = 0; j < _dimension.y / 2; j++)
                 {
-                    _spawnPos.x = (1.0f + (i * 2.0f)) + _offset.x;
-                    _spawnPos.z = (1.0f + (j * 2.0f)) + _offset.y;
+                    _spawnPos.x = 1.0f + (i * 2.0f) + _offset.x;
+                    _spawnPos.z = 1.0f + (j * 2.0f) + _offset.y;
 
                     Cell newCell = Instantiate(
                         _cellPrefab, _spawnPos,
@@ -608,8 +622,14 @@ namespace Biocrowds.Core
             // Atribui o grupo da área de spawn
             newAgent.groupId = _area.groupId;
 
-            // Afinidade aleatória entre 0 e 1
-            newAgent.affinity = Random.Range(0f, 1f);
+            // Afinidade coerente com o grupo: amostra em torno da média da área
+            // (uniform [mean-spread, mean+spread]), clamped a [0,1]. Garante
+            // coerência intra-grupo — sem isso, a média de qualquer grupo grande
+            // converge a 0.5 e a troca por afinidade vira ruído.
+            newAgent.affinity = Mathf.Clamp01(
+                _area.groupAffinityMean +
+                Random.Range(-_area.groupAffinitySpread, _area.groupAffinitySpread)
+            );
 
             if (_isInitialSpawn)
             {
