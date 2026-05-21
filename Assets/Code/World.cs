@@ -36,10 +36,10 @@ namespace Biocrowds.Core
 
         // group interaction settings
         [SerializeField] private bool ALLOW_GROUP_CHANGES = true; // master switch for all group changes
-        [SerializeField] private float GROUP_PROXIMITY_DISTANCE = 3.0f; // detection radius between groups; half of this is also used as "close pair" threshold
-        [SerializeField] private float GROUP_SWITCH_GRACE_PERIOD = 1.0f; // time after spawn before group changes are allowed
+        [SerializeField] private float GROUP_PROXIMITY_DISTANCE = 15.0f; // detection radius for group interactions
+        [SerializeField] private float GROUP_SWITCH_GRACE_PERIOD = 0.1f; // time after spawn before group changes are allowed
         [Range(0f, 1f)]
-        [SerializeField] private float AFFINITY_SWITCH_THRESHOLD = 0.3f; // increased from 0.2f to be much more restrictive
+        [SerializeField] private float AFFINITY_SWITCH_THRESHOLD = 0.6f; // higher threshold allows more group switching
 
 
         [Header("Terrain Setting")]
@@ -96,7 +96,7 @@ namespace Biocrowds.Core
 
         // diagnostic: when true, World logs a per-eval-cycle summary of group switches.
         // Toggle in the Inspector to inspect whether dynamics are actually firing.
-        [SerializeField] private bool DEBUG_LOG_GROUP_CHANGES = false;
+        [SerializeField] private bool DEBUG_LOG_GROUP_CHANGES = true;
         private int _switchesThisCycle = 0;
         private int _newGroupsThisCycle = 0;
         private int _soloJoinsThisCycle = 0;
@@ -117,6 +117,11 @@ namespace Biocrowds.Core
         public List<Auxin> Auxins
         {
             get { return _auxins; }
+        }
+
+        public List<Agent> Agents
+        {
+            get { return _agents; }
         }
 
         [SerializeField]
@@ -725,8 +730,8 @@ namespace Biocrowds.Core
                     if (distSqr <= halfProxSqr)
                     {
                         closePairs++;
-                        if (anyWithinProx && closePairs >= 2)
-                            return true; // early exit
+                        if (anyWithinProx && closePairs >= 1)
+                            return true; // early exit - reduced from 2 to 1
                     }
                 }
             }
@@ -792,17 +797,15 @@ namespace Biocrowds.Core
 
         private bool ShouldAgentSwitchGroup(Agent agent, float currentGroupAffinity, float newGroupAffinity, int newGroupId)
         {
-            if (agent.timeSinceSpawn < GROUP_SWITCH_GRACE_PERIOD)
-                return false;
-
+            // No grace period for existing group swaps - allow freely
             // calculate difference between agent's affinity and current group
             float currentDifference = Mathf.Abs(agent.affinity - currentGroupAffinity);
             
             // calculate difference between agent's affinity and new group
             float newDifference = Mathf.Abs(agent.affinity - newGroupAffinity);
 
-            // switch if new group is significantly closer in affinity
-            return (currentDifference - newDifference) >= AFFINITY_SWITCH_THRESHOLD;
+            // switch if new group is BETTER (closer affinity) AND new group is compatible enough
+            return newDifference < currentDifference && newDifference <= AFFINITY_SWITCH_THRESHOLD;
         }
 
         private void EvaluateSoloAgentsMeetings()

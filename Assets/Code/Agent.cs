@@ -327,7 +327,44 @@ namespace Biocrowds.Core
                 //sum the resulting vector * weight (Wk*Dk)
                 _rotation += valorW * _distAuxin[k] * _maxSpeed;
             }
+            
+            // Local avoidance: repel from nearby agents to break queue formation
+            if (_world != null)
+            {
+                Vector3 repulsionForce = Vector3.zero;
+                int repelCount = 0;
+                
+                float avoidanceRadius = agentRadius * 3.0f;
+                float avoidanceRadiusSqr = avoidanceRadius * avoidanceRadius;
+                
+                foreach (Agent other in _world.Agents)
+                {
+                    if (other == this) continue;
+                    
+                    Vector3 toOther = other.transform.position - transform.position;
+                    float distSqr = toOther.sqrMagnitude;
+                    
+                    if (distSqr < avoidanceRadiusSqr && distSqr > 0.0001f)
+                    {
+                        float dist = Mathf.Sqrt(distSqr);
+                        Vector3 repel = -toOther / dist;
+                        float strength = 1.0f - (dist / avoidanceRadius);
+                        strength = strength * strength;
+                        repulsionForce += repel * strength;
+                        repelCount++;
+                    }
+                }
+                
+                if (repelCount > 0)
+                {
+                    float dominanceFactor = 0.5f + (dominance * 0.5f);
+                    repulsionForce *= (dominanceFactor / repelCount);
+                    float repulsionWeight = 0.2f;
+                    _rotation = (1.0f - repulsionWeight) * _rotation.normalized + repulsionWeight * repulsionForce;
+                }
+            }
         }
+
 
         //calculate W
         float CalculaW(int indiceRelacao)
@@ -369,7 +406,24 @@ namespace Biocrowds.Core
                 return (float)(1.0 / (1.0 + Ymodule));
 
             //return the formula, defined in thesis
-            return (float)((1.0 / (1.0 + Ymodule)) * (1.0 + ((dot) / (Xmodule * Ymodule))));
+            float baseF = (float)((1.0 / (1.0 + Ymodule)) * (1.0 + ((dot) / (Xmodule * Ymodule))));
+            
+            // Apply personality modulation:
+            // - High dominance: more aggressive, prefers closer auxins (higher weights)
+            // - Low affinity: more exploratory, adds randomness to escape follow patterns
+            float personalityMod = 1.0f;
+            
+            // Dominance increases weight on nearby auxins (encourages closer paths)
+            personalityMod *= (1.0f + dominance * 0.5f);
+            
+            // Low affinity adds random variation to avoid deterministic following
+            if (affinity < 0.5f)
+            {
+                float randomFactor = 0.8f + Random.Range(0f, 0.4f) * (1.0f - affinity);
+                personalityMod *= randomFactor;
+            }
+            
+            return baseF * personalityMod;
         }
 
         //calculate speed vector    
@@ -380,10 +434,16 @@ namespace Biocrowds.Core
 
             //multiply for PI
             float s = moduleM * Mathf.PI;
+            
+            // Apply personality to speed:
+            // - High dominance: moves faster (more aggressive)
+            // - Low affinity: variable speed (more unpredictable)
+            float speedModifier = 0.7f + (dominance * 0.3f); // dominance from 0.7x to 1.0x
+            speedModifier *= (0.9f + Random.Range(0f, 0.2f) * (1.0f - affinity)); // affinity adds stability
 
             //if it is bigger than maxSpeed, use maxSpeed instead
-            if (s > _maxSpeed)
-                s = _maxSpeed;
+            if (s > _maxSpeed * speedModifier)
+                s = _maxSpeed * speedModifier;
 
             //Debug.Log("vetor M: " + m + " -- modulo M: " + s);
             if (moduleM > 0.0001f)
