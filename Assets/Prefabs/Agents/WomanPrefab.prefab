@@ -229,6 +229,7 @@ SkinnedMeshRenderer:
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 0
+  m_RayTraceProcedural: 0
   m_RenderingLayerMask: 4294967295
   m_RendererPriority: 0
   m_Materials:
@@ -317,6 +318,7 @@ SkinnedMeshRenderer:
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 0
+  m_RayTraceProcedural: 0
   m_RenderingLayerMask: 4294967295
   m_RendererPriority: 0
   m_Materials:
@@ -789,6 +791,7 @@ SkinnedMeshRenderer:
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 0
+  m_RayTraceProcedural: 0
   m_RenderingLayerMask: 4294967295
   m_RendererPriority: 0
   m_Materials:
@@ -1033,6 +1036,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   qview: []
+  avgDirSum: {x: 0, y: 0, z: 0}
+  avgDir: {x: 0, y: 0, z: 0}
+  dirView: []
 --- !u!1 &3333232816833597664
 GameObject:
   m_ObjectHideFlags: 0
@@ -1202,6 +1208,7 @@ SkinnedMeshRenderer:
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 0
+  m_RayTraceProcedural: 0
   m_RenderingLayerMask: 4294967295
   m_RendererPriority: 0
   m_Materials:
@@ -1910,6 +1917,7 @@ SkinnedMeshRenderer:
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 0
+  m_RayTraceProcedural: 0
   m_RenderingLayerMask: 4294967295
   m_RendererPriority: 0
   m_Materials:
@@ -2219,6 +2227,7 @@ SkinnedMeshRenderer:
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 0
+  m_RayTraceProcedural: 0
   m_RenderingLayerMask: 4294967295
   m_RendererPriority: 0
   m_Materials:
@@ -2578,6 +2587,7 @@ SkinnedMeshRenderer:
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 0
+  m_RayTraceProcedural: 0
   m_RenderingLayerMask: 4294967295
   m_RendererPriority: 0
   m_Materials:
@@ -2881,6 +2891,7 @@ MeshRenderer:
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -2905,6 +2916,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!114 &5132337951249822280
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2920,6 +2932,13 @@ MonoBehaviour:
   agentRadius: 0
   _velocity: {x: 0, y: 0, z: 0}
   _maxSpeed: 1.5
+  dominance: 1
+  affinity: 0
+  groupId: -1
+  timeSinceSpawn: 0
+  groupCohesionStrength: 0.3
+  isGroupLeader: 0
+  leaderSyncRadius: 3
   Goal: {fileID: 0}
   goalsList: []
   goalsWaitList: []
@@ -2927,7 +2946,10 @@ MonoBehaviour:
   waitCount: 0
   goalIndex: 0
   removeWhenGoalReached: 0
+  goalDistThreshold: 30
   _auxins: []
   _currentCell: {fileID: 0}
+  _visualAgent: {fileID: 0}
   _distAuxin: []
+  _nearbyGroupMembers: []
   auxinCount: 0

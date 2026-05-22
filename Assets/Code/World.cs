@@ -41,6 +41,8 @@ namespace Biocrowds.Core
         [Range(0f, 1f)]
         [SerializeField] private float AFFINITY_SWITCH_THRESHOLD = 0.6f; // higher threshold allows more group switching
 
+        [SerializeField] private float LEADER_MIN_TENURE = 5f; // segundos mínimos como líder
+        private Dictionary<int, float> _leaderTenure = new Dictionary<int, float>(); // groupId -> tempo no cargo
 
         [Header("Terrain Setting")]
         public MeshFilter planeMeshFilter;
@@ -565,7 +567,8 @@ namespace Biocrowds.Core
                 newAgent.goalsWaitList = _area.repeatingWaitList;
             }
             newAgent.groupId = _area.groupId;
-            newAgent.timeSinceSpawn = 0f; // enforce grace period from spawn moment
+            newAgent.timeSinceSpawn = 0f;
+            newAgent.affinity = Random.Range(_area.affinityMin, _area.affinityMax);
             newAgent.World = this;
             _agents.Add(newAgent);
         }
@@ -634,8 +637,47 @@ namespace Biocrowds.Core
                     }
                 }
 
-                if (leader != null)
+                
+                if (leader == null) continue;
+
+                // Verifica se já existe um líder atual com tenure suficiente
+                Agent currentLeader = null;
+                foreach (Agent a in group.Value)
+                {
+                    if (_previousLeaders.Contains(a))
+                    {
+                        currentLeader = a;
+                        break;
+                    }
+                }
+
+                // Incrementa tenure do líder atual
+                if (currentLeader != null)
+                {
+                    float tenure;
+                    _leaderTenure.TryGetValue(group.Key, out tenure);
+                    // usa GROUP_EVAL_INTERVAL * SIMULATION_TIME_STEP para estimar o tempo decorrido
+                    float elapsed = GROUP_EVAL_INTERVAL * 0.02f; // 0.02f = SIMULATION_TIME_STEP fixo
+                    _leaderTenure[group.Key] = tenure + elapsed;
+
+                    if (_leaderTenure[group.Key] >= LEADER_MIN_TENURE && leader != currentLeader)
+                    {
+                        // tenure cumprida e há candidato mais dominante — troca
+                        _leaderTenure[group.Key] = 0f;
+                        leader.isGroupLeader = true;
+                    }
+                    else
+                    {
+                        // mantém líder atual
+                        currentLeader.isGroupLeader = true;
+                    }
+                }
+                else
+                {
+                    // líder anterior morreu ou não existe — elege imediatamente e zera tenure
+                    _leaderTenure[group.Key] = 0f;
                     leader.isGroupLeader = true;
+                }
             }
 
             // refresh visuals only when leadership flag flipped

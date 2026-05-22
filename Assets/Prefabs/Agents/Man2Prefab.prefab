@@ -101,8 +101,10 @@ MonoBehaviour:
   dominance: 1
   affinity: 0
   groupId: -1
+  timeSinceSpawn: 0
   groupCohesionStrength: 0.5
   isGroupLeader: 0
+  leaderSyncRadius: 3
   Goal: {fileID: 0}
   goalsList: []
   goalsWaitList: []

@@ -49,6 +49,8 @@ namespace Biocrowds.Core
         // is this agent the leader of its group?
         public bool isGroupLeader = false;
 
+        [SerializeField] private float leaderSyncRadius = 6f; // multiplicador do agentRadius
+
         //goal
         public GameObject Goal;
         // Multiple goals
@@ -236,22 +238,41 @@ namespace Biocrowds.Core
 
         public void WaitStep(float _timeStep)
         {
-            // Followers sincronizam o goalIndex com o líder continuamente
             if (HasGroup && !isGroupLeader && _world != null)
             {
                 Agent leader = _world.GetGroupLeader(groupId);
-                if (leader != null && leader.CurrentGoalIndex != goalIndex)
+
+                if (leader != null)
                 {
-                    goalIndex = Mathf.Clamp(leader.CurrentGoalIndex, 0, goalsList.Count - 1);
-                    Goal      = goalsList[goalIndex];
-                    isWaiting = leader.isWaiting;
-                    waitCount = 0f;
-                    UpdateGoalPositionAndNavmesh();
+                    float distToLeaderSqr = (transform.position - leader.transform.position).sqrMagnitude;
+                    float syncRadius = agentRadius * leaderSyncRadius;
+
+                    if (distToLeaderSqr <= syncRadius * syncRadius)
+                    {
+                        // perto do líder — sincroniza goal
+                        if (leader.CurrentGoalIndex != goalIndex)
+                        {
+                            goalIndex = Mathf.Clamp(leader.CurrentGoalIndex, 0, goalsList.Count - 1);
+                            Goal      = goalsList[goalIndex];
+                            isWaiting = leader.isWaiting;
+                            waitCount = 0f;
+                            UpdateGoalPositionAndNavmesh();
+                        }
+                    }
+                    else
+                    {
+                        // longe do líder — ignora goal próprio e vai em direção ao líder
+                        _goalPosition = leader.transform.position;
+                        _dirAgentGoal = _goalPosition - transform.position;
+                    }
+
+                    return;
                 }
-                return; // follower não avança goals por conta própria
+
+                // líder morreu — age independente até novo líder ser eleito
             }
 
-            // Apenas o líder (ou agentes solo) gerenciam seus próprios goals
+            // líder, solo, ou follower sem líder: gerencia goals próprios
             if (goalIndex != goalsWaitList.Count - 1 && goalIndex + 1 > goalsWaitList.Count)
                 return;
 
@@ -280,6 +301,7 @@ namespace Biocrowds.Core
                 }
             }
         }
+    
 
         //The calculation formula starts here
         //the ideia is to find m=SUM[k=1 to n](Wk*Dk)

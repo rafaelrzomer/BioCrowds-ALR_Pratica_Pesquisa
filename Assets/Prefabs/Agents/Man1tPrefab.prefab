@@ -57,6 +57,7 @@ MeshRenderer:
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -81,6 +82,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!114 &1289276104905072679
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -96,6 +98,13 @@ MonoBehaviour:
   agentRadius: 0
   _velocity: {x: 0, y: 0, z: 0}
   _maxSpeed: 1.5
+  dominance: 1
+  affinity: 0
+  groupId: -1
+  timeSinceSpawn: 0
+  groupCohesionStrength: 0.3
+  isGroupLeader: 0
+  leaderSyncRadius: 3
   Goal: {fileID: 0}
   goalsList: []
   goalsWaitList: []
@@ -103,9 +112,12 @@ MonoBehaviour:
   waitCount: 0
   goalIndex: 0
   removeWhenGoalReached: 0
+  goalDistThreshold: 30
   _auxins: []
   _currentCell: {fileID: 0}
+  _visualAgent: {fileID: 0}
   _distAuxin: []
+  _nearbyGroupMembers: []
   auxinCount: 0
 --- !u!1001 &3431316887791460190
 PrefabInstance:
@@ -127,6 +139,10 @@ PrefabInstance:
       value: man1
       objectReference: {fileID: 0}
     - target: {fileID: 4315803914999166, guid: 90ade71726e528d48b17471e85ae85a3, type: 3}
+      propertyPath: m_RootOrder
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4315803914999166, guid: 90ade71726e528d48b17471e85ae85a3, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
       objectReference: {fileID: 0}
@@ -139,6 +155,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4315803914999166, guid: 90ade71726e528d48b17471e85ae85a3, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4315803914999166, guid: 90ade71726e528d48b17471e85ae85a3, type: 3}
       propertyPath: m_LocalRotation.x
       value: 0
       objectReference: {fileID: 0}
@@ -148,14 +168,6 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4315803914999166, guid: 90ade71726e528d48b17471e85ae85a3, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4315803914999166, guid: 90ade71726e528d48b17471e85ae85a3, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 4315803914999166, guid: 90ade71726e528d48b17471e85ae85a3, type: 3}
-      propertyPath: m_RootOrder
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4315803914999166, guid: 90ade71726e528d48b17471e85ae85a3, type: 3}

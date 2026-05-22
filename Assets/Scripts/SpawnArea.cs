@@ -7,8 +7,12 @@ public class SpawnArea : MonoBehaviour
     private Collider _collider;
     private MeshRenderer _meshRenderer;
 
-    [Header("Spawn Area Group")]
+   [Header("Spawn Area Group")]
     public int groupId = -1;
+
+    [Header("Agent Affinity Range")]
+    [Range(0f, 1f)] public float affinityMin = 0f;
+    [Range(0f, 1f)] public float affinityMax = 1f;
 
     [Header("Initial Spawner Settings")]
     public int initialNumberOfAgents;
