@@ -236,11 +236,25 @@ namespace Biocrowds.Core
 
         public void WaitStep(float _timeStep)
         {
-            if (goalIndex != goalsWaitList.Count - 1 && goalIndex + 1 > goalsWaitList.Count)
+            // Followers sincronizam o goalIndex com o líder continuamente
+            if (HasGroup && !isGroupLeader && _world != null)
             {
-                //Debug.LogError("No wait defined for current goal");
-                return;
+                Agent leader = _world.GetGroupLeader(groupId);
+                if (leader != null && leader.CurrentGoalIndex != goalIndex)
+                {
+                    goalIndex = Mathf.Clamp(leader.CurrentGoalIndex, 0, goalsList.Count - 1);
+                    Goal      = goalsList[goalIndex];
+                    isWaiting = leader.isWaiting;
+                    waitCount = 0f;
+                    UpdateGoalPositionAndNavmesh();
+                }
+                return; // follower não avança goals por conta própria
             }
+
+            // Apenas o líder (ou agentes solo) gerenciam seus próprios goals
+            if (goalIndex != goalsWaitList.Count - 1 && goalIndex + 1 > goalsWaitList.Count)
+                return;
+
             if (isWaiting)
             {
                 waitCount += _timeStep;
@@ -633,9 +647,9 @@ namespace Biocrowds.Core
                         goalsWaitList = new List<float>(newGroupLeader.goalsWaitList);
                     
                     // Start from where the leader is in the goal list (follow the leader's progress)
-                    goalIndex = Mathf.Min(newGroupLeader.CurrentGoalIndex, goalsList.Count - 1);
-                    Goal = goalsList[goalIndex];
-                    isWaiting = false;
+                    goalIndex = Mathf.Clamp(newGroupLeader.CurrentGoalIndex, 0, goalsList.Count - 1);
+                    Goal      = goalsList[goalIndex];
+                    isWaiting = newGroupLeader.isWaiting; // sincroniza estado de espera
                     waitCount = 0f;
                     
                     // Update navigation mesh for the new goal

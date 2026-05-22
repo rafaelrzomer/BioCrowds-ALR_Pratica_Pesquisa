@@ -864,9 +864,18 @@ namespace Biocrowds.Core
                         {
                             // they should form a new group together
                             int newGroupId = _nextGroupId++;
-                            agent1.SwitchGroup(newGroupId);
-                            agent2.SwitchGroup(newGroupId);
+
+                            // Elege líder ANTES de SwitchGroup — GetGroupLeader precisa encontrá-lo
+                            Agent newLeader   = agent1.dominance >= agent2.dominance ? agent1 : agent2;
+                            Agent newFollower = newLeader == agent1 ? agent2 : agent1;
+
+                            newLeader.groupId       = newGroupId;
+                            newLeader.isGroupLeader = true;
+                            newLeader.ApplyGroupColor(); // registra a cor antes que o follower a busque
+
+                            newFollower.SwitchGroup(newGroupId); // copia goals do líder corretamente
                             _newGroupsThisCycle++;
+                    
                             break; // agent1 paired; move to next i
                         }
                     }
