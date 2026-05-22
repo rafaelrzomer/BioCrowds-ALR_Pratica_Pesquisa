@@ -60,6 +60,7 @@ namespace Biocrowds.Core
 
         [SerializeField]
         private int goalIndex = 0;
+        public int CurrentGoalIndex => goalIndex; // public getter to access current goal index
         public bool removeWhenGoalReached;
 
         public float goalDistThreshold = 30.0f;
@@ -617,6 +618,30 @@ namespace Biocrowds.Core
             groupId = newGroupId;
             isGroupLeader = false; // reset leader status when switching groups
             _nearbyGroupMembers.Clear(); // clear nearby members list
+            
+            // Get the leader of the new group and copy their goals
+            if (_world != null)
+            {
+                Agent newGroupLeader = _world.GetGroupLeader(newGroupId);
+                if (newGroupLeader != null && newGroupLeader.goalsList != null && newGroupLeader.goalsList.Count > 0)
+                {
+                    // Copy the leader's goal list
+                    goalsList = new List<GameObject>(newGroupLeader.goalsList);
+                    
+                    // Copy the leader's wait list if available
+                    if (newGroupLeader.goalsWaitList != null && newGroupLeader.goalsWaitList.Count > 0)
+                        goalsWaitList = new List<float>(newGroupLeader.goalsWaitList);
+                    
+                    // Start from where the leader is in the goal list (follow the leader's progress)
+                    goalIndex = Mathf.Min(newGroupLeader.CurrentGoalIndex, goalsList.Count - 1);
+                    Goal = goalsList[goalIndex];
+                    isWaiting = false;
+                    waitCount = 0f;
+                    
+                    // Update navigation mesh for the new goal
+                    UpdateGoalPositionAndNavmesh();
+                }
+            }
             
             // Aplicar cor do novo grupo
             ApplyGroupColor();

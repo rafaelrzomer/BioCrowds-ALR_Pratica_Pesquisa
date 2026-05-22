@@ -142,6 +142,19 @@ namespace Biocrowds.Core
             return _groupSizes.TryGetValue(gid, out n) ? n : 0;
         }
 
+        /// <summary>
+        /// Finds and returns the leader agent of the specified group
+        /// </summary>
+        public Agent GetGroupLeader(int groupId)
+        {
+            foreach (Agent agent in _agents)
+            {
+                if (agent.groupId == groupId && agent.isGroupLeader)
+                    return agent;
+            }
+            return null;
+        }
+
         //max auxins on the ground
         private bool _isReady;
 
