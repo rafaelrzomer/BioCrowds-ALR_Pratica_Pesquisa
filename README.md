@@ -9,24 +9,6 @@ Baseado em <https://github.com/Virtual-Humans-Lab/BioCrowds>.
 ## Visão Geral
 
 BioCrowds simula multidões usando **marcadores espaciais (auxins)** disputados por agentes dentro de um raio de percepção. Movimento é livre de colisões por construção matemática.
-
-Esta versão adiciona:
-
-- **Hierarquia crowd → groups → agents** com `groupId`, `affinity`, `dominance`.
-- **`Group` + `GroupManager`** — registro central de grupos com lista de membros, líder e goals compartilhados (serializado no Inspector).
-- **Trocas de grupo emergentes** baseadas em proximidade e diferença de afinidade.
-- **Coesão por liderança**: seguidores são puxados em direção ao líder e sincronizam goals dentro de `leaderSyncRadius`.
-- **Eleição de líder com tenure mínima** (`LEADER_MIN_TENURE`) — evita troca oscilante de líder.
-- **Marcador visual do líder**: diamante (octaedro) procedural giratório acima da cabeça + brilho + escala 1.25×.
-- **Afinidade por `SpawnArea`**: faixa `affinityMin / affinityMax` por área.
-- **Multiplicador de tempo de espera** (`WAIT_TIME_MULTIPLIER`).
-- **Local avoidance**: repulsão de curto alcance para quebrar formação em fila.
-- **Modulação por personalidade**: `dominance` aumenta peso de auxins próximos e velocidade; `affinity < 0.5` adiciona variação estocástica.
-- **Visualização por cor de grupo** via `GroupColorManager`.
-- **Múltiplos métodos de geração de marcadores**: grade regular e dart-throwing (Poisson-disk).
-- **Sistema de goals sequenciais** com tempos de espera por agente.
-- **Spawn areas** repetíveis ao longo da simulação.
-
 ---
 
 ## Releases (Dev Log)
