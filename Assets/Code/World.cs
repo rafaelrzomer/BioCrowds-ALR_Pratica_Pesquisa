@@ -44,6 +44,10 @@ namespace Biocrowds.Core
         [SerializeField] private float LEADER_MIN_TENURE = 5f; // segundos mínimos como líder
         private Dictionary<int, float> _leaderTenure = new Dictionary<int, float>(); // groupId -> tempo no cargo
 
+        // multiplier applied to each goal's wait time. >1 makes agents wait longer at every goal.
+        [SerializeField] private float WAIT_TIME_MULTIPLIER = 1.0f;
+        public float WaitTimeMultiplier => WAIT_TIME_MULTIPLIER;
+
         [Header("Terrain Setting")]
         public MeshFilter planeMeshFilter;
 
@@ -149,6 +153,11 @@ namespace Biocrowds.Core
         /// </summary>
         public Agent GetGroupLeader(int groupId)
         {
+            if (GroupManager.Instance != null)
+            {
+                Agent l = GroupManager.Instance.GetLeader(groupId);
+                if (l != null) return l;
+            }
             foreach (Agent agent in _agents)
             {
                 if (agent.groupId == groupId && agent.isGroupLeader)
@@ -233,7 +242,6 @@ namespace Biocrowds.Core
             //wait a little bit to start moving
             yield return new WaitForSeconds(1.0f);
             _isReady = true;
-            Debug.Break();
         }
 
         private IEnumerator CreateCells()
@@ -568,9 +576,23 @@ namespace Biocrowds.Core
             }
             newAgent.groupId = _area.groupId;
             newAgent.timeSinceSpawn = 0f;
+            newAgent.dominance = Random.Range(0f, 1f);
             newAgent.affinity = Random.Range(_area.affinityMin, _area.affinityMax);
             newAgent.World = this;
             _agents.Add(newAgent);
+
+            // Registro no GroupManager (se presente na cena).
+            // Primeiro agente de um grupo semeia goalsList/goalsWaitList do Group.
+            if (GroupManager.Instance != null && newAgent.HasGroup)
+            {
+                Group g = GroupManager.Instance.GetOrCreate(newAgent.groupId);
+                g.AddAgent(newAgent);
+                if (g.GoalsList == null || g.GoalsList.Count == 0)
+                {
+                    g.GoalsList = new List<GameObject>(newAgent.goalsList);
+                    g.GoalsWaitList = new List<float>(newAgent.goalsWaitList);
+                }
+            }
         }
 
         private int GetNewAgentID()
@@ -686,6 +708,20 @@ namespace Biocrowds.Core
                 bool wasLeader = _previousLeaders.Contains(agent);
                 if (wasLeader != agent.isGroupLeader)
                     agent.ApplyGroupColor();
+            }
+
+            // Sincroniza líderes no GroupManager (se presente).
+            if (GroupManager.Instance != null)
+            {
+                foreach (var kv in _groupsScratch)
+                {
+                    Agent chosen = null;
+                    foreach (Agent a in kv.Value)
+                    {
+                        if (a.isGroupLeader) { chosen = a; break; }
+                    }
+                    GroupManager.Instance.SetLeader(kv.Key, chosen);
+                }
             }
         }
 

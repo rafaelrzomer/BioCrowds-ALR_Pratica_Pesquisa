@@ -137,9 +137,9 @@ namespace Biocrowds.Core
             _navMeshPath = new NavMeshPath();
             if (_visualAgent == null) _visualAgent = GetComponentInChildren<VisualAgent>();
 
-            // assign random dominance and affinity at start
-            dominance = Random.Range(0f, 1f);
-            affinity = Random.Range(0f, 1f);
+            // dominance/affinity are assigned by the spawner (World.SpawnNewAgentInArea)
+            // before Start() runs on the next frame. Do NOT randomize here or those values
+            // get clobbered (e.g. SpawnArea.affinityMin/Max would be ignored).
 
             _goalPosition = Goal.transform.position;
             _dirAgentGoal = _goalPosition - transform.position;
@@ -279,7 +279,8 @@ namespace Biocrowds.Core
             if (isWaiting)
             {
                 waitCount += _timeStep;
-                if (waitCount >= goalsWaitList[goalIndex])
+                float mult = (_world != null) ? _world.WaitTimeMultiplier : 1.0f;
+                if (waitCount >= goalsWaitList[goalIndex] * mult)
                 {
                     isWaiting = false;
                     goalIndex++;
@@ -651,10 +652,15 @@ namespace Biocrowds.Core
             if (newGroupId == groupId)
                 return; // already in the target group
 
+            int oldGroupId = groupId;
             groupId = newGroupId;
             isGroupLeader = false; // reset leader status when switching groups
             _nearbyGroupMembers.Clear(); // clear nearby members list
-            
+
+            // Notifica GroupManager (se presente).
+            if (GroupManager.Instance != null)
+                GroupManager.Instance.MoveAgent(oldGroupId, newGroupId, this);
+
             // Get the leader of the new group and copy their goals
             if (_world != null)
             {

@@ -143,6 +143,12 @@ public class VisualAgent : MonoBehaviour
     private const float LEADER_SCALE = 1.25f;     // uniform scale multiplier for leaders
     private Vector3 _baseScale = Vector3.zero;    // cached original scale
 
+    // leader marker (procedurally-built octahedron floating above head)
+    private GameObject _leaderMarker;
+    private const float MARKER_HEIGHT = 2.2f;   // metros acima do pivô do agente
+    private const float MARKER_SIZE = 0.25f;    // raio do diamante
+    private static Mesh _diamondMeshCache;      // mesh compartilhado entre todos os agentes
+
     /// <summary>
     /// Aplica a cor do grupo destacando o líder do grupo (brilho + escala maior).
     /// </summary>
@@ -166,6 +172,79 @@ public class VisualAgent : MonoBehaviour
             _baseScale = transform.localScale;
 
         transform.localScale = isLeader ? _baseScale * LEADER_SCALE : _baseScale;
+
+        UpdateLeaderMarker(isLeader, color);
+    }
+
+    /// <summary>
+    /// Cria/destroi um diamante (octaedro) flutuando acima da cabeça do líder.
+    /// O mesh é gerado uma única vez e compartilhado entre todos os marcadores.
+    /// </summary>
+    private void UpdateLeaderMarker(bool isLeader, Color color)
+    {
+        if (!isLeader)
+        {
+            if (_leaderMarker != null) Destroy(_leaderMarker);
+            _leaderMarker = null;
+            return;
+        }
+
+        if (_leaderMarker == null)
+        {
+            _leaderMarker = new GameObject("LeaderMarker");
+            _leaderMarker.transform.SetParent(transform, false);
+            _leaderMarker.transform.localPosition = new Vector3(0f, MARKER_HEIGHT, 0f);
+            _leaderMarker.transform.localScale = Vector3.one * MARKER_SIZE;
+
+            MeshFilter mf = _leaderMarker.AddComponent<MeshFilter>();
+            MeshRenderer mr = _leaderMarker.AddComponent<MeshRenderer>();
+            mf.sharedMesh = GetDiamondMesh();
+            // material independente para tingir conforme cor do grupo (brilhante)
+            Material m = new Material(Shader.Find("Standard"));
+            m.color = Color.Lerp(color, Color.white, 0.5f);
+            m.EnableKeyword("_EMISSION");
+            m.SetColor("_EmissionColor", Color.Lerp(color, Color.white, 0.7f) * 1.2f);
+            mr.material = m;
+        }
+
+        // animação simples: gira em Y
+        _leaderMarker.transform.localRotation = Quaternion.Euler(0f, Time.time * 120f, 0f);
+    }
+
+    private static Mesh GetDiamondMesh()
+    {
+        if (_diamondMeshCache != null) return _diamondMeshCache;
+
+        // Octaedro: 6 vértices, 8 faces triangulares
+        Vector3[] verts = new Vector3[6]
+        {
+            new Vector3(0f,  1f,  0f), // 0 topo
+            new Vector3(0f, -1f,  0f), // 1 base
+            new Vector3( 1f, 0f,  0f), // 2 +X
+            new Vector3(-1f, 0f,  0f), // 3 -X
+            new Vector3(0f,  0f,  1f), // 4 +Z
+            new Vector3(0f,  0f, -1f), // 5 -Z
+        };
+        int[] tris = new int[24]
+        {
+            0,2,4,  0,4,3,  0,3,5,  0,5,2,   // topo
+            1,4,2,  1,3,4,  1,5,3,  1,2,5    // base (winding invertida)
+        };
+
+        Mesh mesh = new Mesh();
+        mesh.vertices = verts;
+        mesh.triangles = tris;
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+        _diamondMeshCache = mesh;
+        return mesh;
+    }
+
+    private void Update()
+    {
+        // mantém o diamante girando, mesmo entre chamadas de ApplyGroupColor
+        if (_leaderMarker != null)
+            _leaderMarker.transform.localRotation = Quaternion.Euler(0f, Time.time * 120f, 0f);
     }
 
 
