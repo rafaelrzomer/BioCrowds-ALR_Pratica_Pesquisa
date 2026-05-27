@@ -151,11 +151,9 @@ A **Game View** precisa ter foco do teclado.
 
 **Equação central** (Bicho et al.):
 
-```
-m⃗ = Σ wₖ · (a⃗ₖ − x⃗)
-```
+$$\vec{m} = \sum_{k=1}^{n} w_k \cdot (\vec{a}_k - \vec{x})$$
 
-Vetor de movimento é o somatório, para cada marcador `k`, do peso `wₖ` vezes o vetor do agente até o marcador. O peso é função do ângulo entre `(goal − agente)` e `(marcador − agente)`.
+Vetor de movimento $\vec{m}$ é o somatório, para cada marcador $k$, do peso $w_k$ vezes o vetor do agente $\vec{x}$ até o marcador $\vec{a}_k$. O peso é função do ângulo entre $(\text{goal} - \text{agente})$ e $(\text{marcador} - \text{agente})$.
 
 ---
 
@@ -263,7 +261,7 @@ Resumo cronológico. Detalhes técnicos por commit/tag em **Releases (Dev Log)**
 | 🔬 | Comparação quantitativa `ALLOW_GROUP_CHANGES` on/off | Validar empiricamente o impacto da dinâmica de grupo. |
 | 🔬 | Otimização O(N²) → O(N log N) | Loops de proximidade via grid espacial ou KD-tree (relacionado ao ponto de frame rate). |
 | 🔬 | `POISSON_DISK_SAMPLING` spawner | Enum em `SimulationConfiguration.cs` declarado, mas sem classe concreta. |
-| 🔬 | Personalidade OCEAN (Knob et al.) | Adicionar `openness, conscientiousness, extraversion, agreeableness, neuroticism` ao `Agent`. Modular o peso `wₖ` por Extraversion: `w'ₖ,ᵢ = δᵢ · wₖ,ᵢ · Eᵢ + (1 − δᵢ) · (1 − Eᵢ)`. |
+| 🔬 | Personalidade OCEAN (Knob et al.) | Adicionar `openness, conscientiousness, extraversion, agreeableness, neuroticism` ao `Agent`. Modular o peso $w_k$ por Extraversion: $w'_{k,i} = \delta_i \cdot w_{k,i} \cdot E_i + (1 - \delta_i) \cdot (1 - E_i)$. |
 
 ### Questões de pesquisa norteadoras (Caderno, 01/04/2026)
 
