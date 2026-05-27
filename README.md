@@ -6,11 +6,6 @@ Baseado em <https://github.com/Virtual-Humans-Lab/BioCrowds>.
 
 ---
 
-## Visão Geral
-
-BioCrowds simula multidões usando **marcadores espaciais (auxins)** disputados por agentes dentro de um raio de percepção. Movimento é livre de colisões por construção matemática.
----
-
 ## Releases (Dev Log)
 
 Cada release está mapeada para uma tag Git (`git tag`) e referencia diretamente uma entrada do **Caderno de Pesquisa** (`context/Caderno de Pesquisa - prática dem pesquisa.md`). Tags publicadas no GitHub aparecem em <https://github.com/rafaelrzomer/BioCrowds-ALR_Pratica_Pesquisa/releases>.
