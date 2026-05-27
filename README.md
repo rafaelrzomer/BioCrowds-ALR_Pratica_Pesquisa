@@ -172,49 +172,98 @@ PRs vão de `dev-Humberto-Pedro` → `main` em <https://github.com/rafaelrzomer/
 
 ## Roadmap
 
-Alinhado ao **Caderno de Pesquisa** do grupo (Google Docs) e às reuniões com a orientadora. Itens marcados ✅ já estão implementados (ver `CLAUDE.md`, Seção 8). Itens ⬜ pendentes seguem em ordem aproximada de prioridade.
+Alinhado ao **Caderno de Pesquisa** do grupo (Google Docs) e às reuniões com a orientadora.
 
-### Já entregue
+**Legenda de status:**
 
-Veja a seção **Releases (Dev Log)** acima — cada release lista os entregáveis com seu commit/tag e a data correspondente no Caderno.
+| Marcador | Significado |
+|:---:|---|
+| ✅ | Entregue — ver seção **Releases (Dev Log)** acima |
+| 🚧 | Em andamento na sessão atual |
+| ⏳ | Próximo na fila (curto prazo) |
+| 📊 | Médio prazo — testes e métricas (a discutir com o grupo) |
+| 🔬 | Longo prazo — pesquisa e extensões |
+| ⚠️ | Bloqueado / requer Editor Unity ou decisão coletiva |
 
-### Curto prazo — pendente
+### ✅ Já entregue
 
-- ⬜ **Reparar `Assets/Prefabs/AgentPrefab.prefab`** — prefab aninhado com `guid: 7dcf00d1126974d4996a7ef29c81ca22` faltando. Correção precisa ser feita pelo Editor Unity (não é seguro editar o YAML do prefab à mão).
-- ⬜ **Migrar `Update` → `FixedUpdate`** para desacoplar simulação do frame de render. Mudança ainda pendente; afeta toda a malha de chamadas e merece teste cuidadoso.
-- ⬜ **Spatial grid via `CurrentCell ± 1`** para `FindNearbyGroupMembers` e proximidade entre grupos. Ganho proporcional a `N`; só vale para multidões grandes.
-- ⬜ **Adicionar `GroupManager` em todas as cenas existentes.** Sem componente na cena, o registro central fica inativo (código tem fallback, mas Inspector / tecla `G` não funcionam).
-- ⬜ **Limpeza de grupos vazios** em `GroupManager`. Hoje, grupos cujos membros migraram permanecem na lista (intencional para depuração); revisar antes de medir métricas.
+Resumo cronológico. Detalhes técnicos por commit/tag em **Releases (Dev Log)** acima.
 
-### Médio prazo — testes e métricas (caderno) — **a discutir com o grupo**
+| Status | Release | Data (Caderno) | Item |
+|:---:|:---:|:---:|---|
+| ✅ | `v0.1.0` | 21/04/2026 | Fork do BioCrowds-GS e cenário do museu adicionado ao projeto. |
+| ✅ | `v0.2.0` | 06/05/2026 | Campos `dominance` e `affinity` em `Agent` com `[Range(0,1)]`. |
+| ✅ | `v0.2.0` | 06/05/2026 | `groupId` em `Agent` e `SpawnArea`; propagação via `World.SpawnNewAgent`. |
+| ✅ | `v0.2.0` | 06/05/2026 | Coesão de grupo: `FindNearbyGroupMembers` + força de atração ao líder. |
+| ✅ | `v0.2.0` | 06/05/2026 | Eleição de líder por maior `dominance` (`UpdateGroupLeaders`). |
+| ✅ | `v0.3.0` | 08/05/2026 | Média de afinidade por grupo (`World.GroupAffinityAverages`). |
+| ✅ | `v0.3.0` | 08/05/2026 | Troca de grupo por proximidade + diferença de afinidade (`EvaluateGroupProximityAndSwitches`, `ShouldAgentSwitchGroup`, `Agent.SwitchGroup`). |
+| ✅ | `v0.4.0` | 13/05/2026 | Agentes solo formam grupo entre si (`EvaluateSoloAgentsMeetings` + `_nextGroupId`). |
+| ✅ | `v0.4.0` | 13/05/2026 | Agentes solo entram em grupos existentes (`EvaluateSoloAgentsJoiningGroups`). |
+| ✅ | `v0.4.0` | 13/05/2026 | `GROUP_SWITCH_GRACE_PERIOD` pós-spawn. |
+| ✅ | `v0.4.0` | 13/05/2026 | Cores por grupo via `GroupColorManager` singleton + `VisualAgent.ApplyGroupColor`. |
+| ✅ | `v0.5.0` | 14/05/2026 | Correção: `EvaluateSoloAgentsMeetings` não move o mesmo solo para múltiplos grupos no mesmo frame. |
+| ✅ | `v0.5.0` | 14/05/2026 | Correção: `EvaluateGroupSwaps` sem swap recíproco oscilatório (coleta nos dois sentidos e aplica só o bloco maior). |
+| ✅ | `v0.5.0` | 14/05/2026 | Correção: `EvaluateSoloAgentsJoiningGroups` não reprocessa agente já agrupado. |
+| ✅ | `v0.5.0` | 14/05/2026 | `GROUP_PROXIMITY_DISTANCE` ajustado (1.0 era inviável com `agentRadius = 1.0`). |
+| ✅ | `v0.5.0` | 14/05/2026 | `Agent.timeSinceSpawn = 0f` no spawn — grace period passa a valer. |
+| ✅ | `v0.5.0` | 14/05/2026 | Coesão via modulação de pesos (`_effectiveGoalDir` em `GetF`); preserva *collision-free* do BioCrowds. |
+| ✅ | `v0.5.0` | 14/05/2026 | Coesão escalada por `1/√groupSize` (anti-jam em grupos grandes). |
+| ✅ | `v0.5.0` | 14/05/2026 | Throttle `GROUP_EVAL_INTERVAL = 5`, `sqrMagnitude`, *early exit*, pooling (`_groupsScratch`, `_agentListPool`, `_soloScratch`). |
+| ✅ | `v0.5.0` | 14/05/2026 | Marcador visual do líder: brilho (`Color.Lerp → white, 0.4`) + escala `× 1.25` via `ApplyGroupColor(Color, bool isLeader)`. |
+| ✅ | `v0.5.0` | 14/05/2026 | Diagnóstico `DEBUG_LOG_GROUP_CHANGES` com contadores por eval cycle. |
+| ✅ | `v0.5.0` | 14/05/2026 | Eliminação de viés contra grupo de menor `id` (desempate aleatório; solo escolhe grupo mais afim, não o primeiro). |
+| ✅ | `v0.6.0` | 21/05/2026 | Local avoidance (repulsão de curto alcance) — quebra formação em fila. |
+| ✅ | `v0.6.0` | 21/05/2026 | Modulação por personalidade em `GetF` e `CalculateVelocity` (`dominance`, `affinity`). |
+| ✅ | `v0.6.0` | 21/05/2026 | `WAIT_TIME_MULTIPLIER` em `World` — agentes esperam mais em cada goal. |
+| ✅ | `v0.7.0` | 22/05/2026 | `Group.cs` (id, leader, agents, goals) + `GroupManager.cs` (singleton, lista serializada, lookup O(1), `MoveAgent`, `SetLeader`, `DumpToLog`). |
+| ✅ | `v0.7.0` | 22/05/2026 | Sincronização contínua de goals: follower copia `CurrentGoalIndex` do líder em `WaitStep`. |
+| ✅ | `v0.7.0` | 22/05/2026 | Comportamento por distância ao líder via `leaderSyncRadius` (sincroniza dentro do raio; vai em direção ao líder fora dele). |
+| ✅ | `v0.7.0` | 22/05/2026 | Fallback de líder morto (follower age com `goalsList` próprio). |
+| ✅ | `v0.7.0` | 22/05/2026 | Afinidade por `SpawnArea` (`affinityMin` / `affinityMax`); bug do `Agent.Start()` que sobrescrevia o valor corrigido. |
+| ✅ | `v0.7.0` | 22/05/2026 | Eleição com tenure mínima (`LEADER_MIN_TENURE = 5s`). |
+| ✅ | `v0.7.0` | 22/05/2026 | Diamante procedural acima da cabeça do líder em `VisualAgent` (mesh cacheado estaticamente). |
+| ✅ | `v0.7.0` | 22/05/2026 | Tecla `G` → `GroupManager.DumpToLog()`. |
+| 🚧 | `v0.8.0` | 27/05/2026 | `Debug.Break()` em `SetupWorld` removido — destravar movimento e eleição de líder. |
+| 🚧 | `v0.8.0` | 27/05/2026 | `GroupManager.GetOrCreate` insere ordenado por `Id` — `Element N` do Inspector alinhado ao `groupId`. |
+| 🚧 | `v0.8.0` | 27/05/2026 | `Assets/Editor/GroupDrawer.cs` — `PropertyDrawer` pinta header como `"Grupo {id}"`. |
 
-> Itens abaixo foram levantados na **8ª reunião com a orientadora (21/05/2026)** e precisam de alinhamento com o grupo antes de virar implementação. Não modificar arquitetura sem decisão coletiva.
+### ⏳ Curto prazo — pendente
 
-- ⬜ **Cenários múltiplos para experimentos.** Duplicar a cena do museu com variações controladas: poucos vs. muitos agentes, afinidades polarizadas vs. uniformes, layout aberto vs. corredor. Gravar vídeo de cada um e anotar métricas.
-- ⬜ **Métricas para os experimentos** (orientadora):
-  - **Coesão de grupo:** distância média de cada agente ao centróide do seu grupo.
-  - **Trocas de grupo** por intervalo de tempo.
-  - **Tamanho dos grupos** ao longo da simulação.
-- ⬜ **HUD runtime** mostrando métricas ao vivo (separado do Console / Inspector).
-- ⬜ **Exportação de dados** (CSV / JSON) para análise externa e gráficos.
-- ⬜ **Bateria de testes de variação** (14/05/2026 — *"dois grupos com muita afinidade e dois grupos com afinidades muito distantes, testar variação de comportamentos"*).
-- ⬜ **Métricas inspiradas em WebCrowds:** Density Map, Trajectories Map, Simulation Time.
-- ⬜ **Interface runtime para ditar grupos e comportamentos** (01/04/2026 — *"Pequena interface para ditar grupos e comportamentos"*). Painel no Play exibindo/editando `groupId`, `affinity`, `dominance`, `isGroupLeader`.
-- ⬜ **Seed reproduzível.** Substituir `Random.Range` por RNG inicializado em `World` com seed no Inspector — pré-requisito para comparar runs.
-- ⬜ **Estrutura do trabalho/apresentação final** (8ª reunião): Introdução → Trabalhos relacionados → Modelo (o que foi adicionado, parâmetros novos, resultados) → Métricas dos experimentos.
+| Status | Item | Notas |
+|:---:|---|---|
+| ⚠️ | Reparar `Assets/Prefabs/AgentPrefab.prefab` | Prefab aninhado com `guid: 7dcf00d1126974d4996a7ef29c81ca22` faltando. Correção precisa ser feita pelo Editor Unity (não é seguro editar o YAML à mão). |
+| ⏳ | Migrar `Update` → `FixedUpdate` | Desacopla simulação do frame de render. Afeta toda a malha de chamadas — requer teste cuidadoso. |
+| ⏳ | Spatial grid via `CurrentCell ± 1` | Acelera `FindNearbyGroupMembers` e proximidade entre grupos. Ganho proporcional a `N`; vale para multidões grandes. |
+| ⏳ | Adicionar `GroupManager` em todas as cenas | Sem o componente, o registro central fica inativo (código tem fallback, mas Inspector / tecla `G` não funcionam). |
+| ⏳ | Limpeza de grupos vazios em `GroupManager` | Grupos cujos membros migraram permanecem na lista (intencional para depuração); revisar antes de medir métricas. |
 
-### Longo prazo — pesquisa e extensões
+### 📊 Médio prazo — testes e métricas (Caderno)
 
-- ⬜ **Pontos de densidade e caminhos preferenciais** (01/04/2026 — *"Pontos de densidade, caminhos específicos (caminhos futuros)"*). Identificar gargalos no cenário do museu.
-- ⬜ **Aplicação a eventos culturais / museus** (01/04/2026 — objetivo aplicado). Cena do museu com `SpawnAreas` e `Goals` representando salas, corredores e saídas; uso da simulação para evitar aglomerações e preservar liberdade de movimento.
-- ⬜ **Comparação quantitativa** entre execuções com `ALLOW_GROUP_CHANGES` ligado e desligado.
-- ⬜ **Otimização O(N²) → O(N log N)** dos loops de proximidade — grid espacial ou KD-tree (relacionado ao ponto de frame rate).
-- ⬜ **POISSON_DISK_SAMPLING spawner.** Enum em `SimulationConfiguration.cs` mas sem classe concreta.
-- ⬜ **Personalidade OCEAN** (Knob et al., extensão futura). Adicionar `openness, conscientiousness, extraversion, agreeableness, neuroticism` ao `Agent` e modular o peso `wₖ` por Extraversion:
+> Itens levantados na **8ª reunião com a orientadora (21/05/2026)**. ⚠️ Requerem alinhamento com o grupo antes de virar implementação — não modificar arquitetura sem decisão coletiva.
 
-  ```
-  w'ₖ,ᵢ = δᵢ · wₖ,ᵢ · Eᵢ + (1 − δᵢ) · (1 − Eᵢ)
-  ```
+| Status | Item | Notas |
+|:---:|---|---|
+| 📊 | Cenários múltiplos para experimentos | Duplicar a cena do museu com variações controladas: poucos vs. muitos agentes, afinidades polarizadas vs. uniformes, layout aberto vs. corredor. Gravar vídeo e anotar métricas. |
+| 📊 | Métricas para os experimentos | **Coesão de grupo:** distância média ao centróide do grupo. **Trocas de grupo** por intervalo. **Tamanho dos grupos** ao longo da simulação. |
+| 📊 | HUD runtime de métricas | Painel ao vivo, separado do Console / Inspector. |
+| 📊 | Exportação de dados | CSV / JSON para análise externa e gráficos. |
+| 📊 | Bateria de testes de variação | Caderno 14/05/2026 — *"dois grupos com muita afinidade e dois grupos com afinidades muito distantes, testar variação de comportamentos"*. |
+| 📊 | Métricas inspiradas em WebCrowds | Density Map, Trajectories Map, Simulation Time. |
+| 📊 | Interface runtime para ditar grupos e comportamentos | Caderno 01/04/2026. Painel no Play exibindo/editando `groupId`, `affinity`, `dominance`, `isGroupLeader`. |
+| 📊 | Seed reproduzível | Substituir `Random.Range` por RNG inicializado em `World` com seed no Inspector — pré-requisito para comparar runs. |
+| 📊 | Estrutura do trabalho/apresentação final | 8ª reunião: Introdução → Trabalhos relacionados → Modelo (o que foi adicionado, parâmetros novos, resultados) → Métricas dos experimentos. |
+
+### 🔬 Longo prazo — pesquisa e extensões
+
+| Status | Item | Notas |
+|:---:|---|---|
+| 🔬 | Pontos de densidade e caminhos preferenciais | Caderno 01/04/2026 — *"Pontos de densidade, caminhos específicos (caminhos futuros)"*. Identificar gargalos no cenário do museu. |
+| 🔬 | Aplicação a eventos culturais / museus | Caderno 01/04/2026 — objetivo aplicado. `SpawnAreas` e `Goals` como salas/corredores/saídas; evitar aglomerações e preservar liberdade de movimento. |
+| 🔬 | Comparação quantitativa `ALLOW_GROUP_CHANGES` on/off | Validar empiricamente o impacto da dinâmica de grupo. |
+| 🔬 | Otimização O(N²) → O(N log N) | Loops de proximidade via grid espacial ou KD-tree (relacionado ao ponto de frame rate). |
+| 🔬 | `POISSON_DISK_SAMPLING` spawner | Enum em `SimulationConfiguration.cs` declarado, mas sem classe concreta. |
+| 🔬 | Personalidade OCEAN (Knob et al.) | Adicionar `openness, conscientiousness, extraversion, agreeableness, neuroticism` ao `Agent`. Modular o peso `wₖ` por Extraversion: `w'ₖ,ᵢ = δᵢ · wₖ,ᵢ · Eᵢ + (1 − δᵢ) · (1 − Eᵢ)`. |
 
 ### Questões de pesquisa norteadoras (Caderno, 01/04/2026)
 
