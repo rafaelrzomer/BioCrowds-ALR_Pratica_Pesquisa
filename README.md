@@ -224,9 +224,9 @@ Resumo cronológico. Detalhes técnicos por commit/tag em **Releases (Dev Log)**
 | ✅ | `v0.7.0` | 22/05/2026 | Eleição com tenure mínima (`LEADER_MIN_TENURE = 5s`). |
 | ✅ | `v0.7.0` | 22/05/2026 | Diamante procedural acima da cabeça do líder em `VisualAgent` (mesh cacheado estaticamente). |
 | ✅ | `v0.7.0` | 22/05/2026 | Tecla `G` → `GroupManager.DumpToLog()`. |
-| 🚧 | `v0.8.0` | 27/05/2026 | `Debug.Break()` em `SetupWorld` removido — destravar movimento e eleição de líder. |
-| 🚧 | `v0.8.0` | 27/05/2026 | `GroupManager.GetOrCreate` insere ordenado por `Id` — `Element N` do Inspector alinhado ao `groupId`. |
-| 🚧 | `v0.8.0` | 27/05/2026 | `Assets/Editor/GroupDrawer.cs` — `PropertyDrawer` pinta header como `"Grupo {id}"`. |
+| ✅ | `v0.8.0` | 27/05/2026 | `Debug.Break()` em `SetupWorld` removido — destravar movimento e eleição de líder. |
+| ✅ | `v0.8.0` | 27/05/2026 | `GroupManager.GetOrCreate` insere ordenado por `Id` — `Element N` do Inspector alinhado ao `groupId`. |
+| ✅ | `v0.8.0` | 27/05/2026 | `Assets/Editor/GroupDrawer.cs` — `PropertyDrawer` pinta header como `"Grupo {id}"`. |
 
 ### ⏳ Curto prazo — pendente
 
