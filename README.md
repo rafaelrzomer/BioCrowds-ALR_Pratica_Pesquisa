@@ -144,6 +144,7 @@ Alinhado ao **Caderno de Pesquisa** do grupo (Google Docs) e às reuniões com a
 
 | Marcador | Significado |
 |:---:|---|
+| ✅ | Realizado / Completo |
 | 🚧 | Em andamento na sessão atual |
 | ⏳ | Próximo na fila (curto prazo) |
 | 📊 | Médio prazo — testes e métricas (a discutir com o grupo) |
