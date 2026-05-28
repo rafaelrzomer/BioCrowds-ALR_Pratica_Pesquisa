@@ -592,6 +592,10 @@ namespace Biocrowds.Core
             newAgent.dominance = Random.Range(0f, 1f);
             newAgent.affinity = Random.Range(_area.affinityMin, _area.affinityMax);
             newAgent.World = this;
+
+            if (DEBUG_LOG_GROUP_CHANGES)
+                Debug.Log($"[Spawn] {newAgent.name} grupo={_area.groupId} affRange=[{_area.affinityMin:F3},{_area.affinityMax:F3}] aff={newAgent.affinity:F3} dom={newAgent.dominance:F3}");
+
             _agents.Add(newAgent);
 
             // Registro no GroupManager (se presente na cena).
