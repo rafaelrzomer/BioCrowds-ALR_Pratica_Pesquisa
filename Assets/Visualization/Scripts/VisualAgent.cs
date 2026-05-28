@@ -138,16 +138,27 @@ public class VisualAgent : MonoBehaviour
         ApplyGroupColor(color, false);
     }
 
-    // leader visual tuning
-    private const float LEADER_BRIGHTEN = 0.4f;   // lerp factor toward white when agent is leader
-    private const float LEADER_SCALE = 1.25f;     // uniform scale multiplier for leaders
+    [Header("Destaque do Líder")]
+    [Tooltip("Aplica brilho e escala maior ao corpo do líder.")]
+    [SerializeField] private bool _highlightLeaderBody = true;
+    [Range(0f, 1f)]
+    [SerializeField] private float _leaderBrighten = 0.4f;   // lerp em direção ao branco quando é líder
+    [SerializeField] private float _leaderScale = 1.25f;     // multiplicador de escala uniforme do líder
     private Vector3 _baseScale = Vector3.zero;    // cached original scale
 
-    // leader marker (procedurally-built octahedron floating above head)
+    [Header("Marcador do Líder")]
+    [Tooltip("Liga/desliga o marcador flutuante acima da cabeça do líder.")]
+    [SerializeField] private bool _showLeaderMarker = true;
+    [Tooltip("Prefab opcional do marcador. Se vazio, usa um octaedro (diamante) procedural.")]
+    [SerializeField] private GameObject _leaderMarkerPrefab;
+    [Tooltip("Tinge o marcador com a cor do grupo. Desligado mantém a cor original do prefab/material.")]
+    [SerializeField] private bool _tintMarkerWithGroupColor = true;
+    [SerializeField] private float _markerHeight = 2.2f;     // metros acima do pivô do agente
+    [SerializeField] private float _markerSize = 0.25f;      // escala uniforme do marcador
+    [SerializeField] private float _markerSpinSpeed = 120f;  // graus/segundo de rotação em Y (0 = parado)
     private GameObject _leaderMarker;
-    private const float MARKER_HEIGHT = 2.2f;   // metros acima do pivô do agente
-    private const float MARKER_SIZE = 0.25f;    // raio do diamante
-    private static Mesh _diamondMeshCache;      // mesh compartilhado entre todos os agentes
+    private Material _leaderMarkerMat;          // material do marcador (tingido pela cor do grupo)
+    private static Mesh _diamondMeshCache;      // mesh do octaedro procedural, compartilhado
 
     /// <summary>
     /// Aplica a cor do grupo destacando o líder do grupo (brilho + escala maior).
@@ -159,7 +170,7 @@ public class VisualAgent : MonoBehaviour
             CacheRenderersAndMaterials();
         }
 
-        Color finalColor = isLeader ? Color.Lerp(color, Color.white, LEADER_BRIGHTEN) : color;
+        Color finalColor = (isLeader && _highlightLeaderBody) ? Color.Lerp(color, Color.white, _leaderBrighten) : color;
 
         foreach (Material mat in _materials)
         {
@@ -171,44 +182,68 @@ public class VisualAgent : MonoBehaviour
         if (_baseScale == Vector3.zero)
             _baseScale = transform.localScale;
 
-        transform.localScale = isLeader ? _baseScale * LEADER_SCALE : _baseScale;
+        transform.localScale = (isLeader && _highlightLeaderBody) ? _baseScale * _leaderScale : _baseScale;
 
         UpdateLeaderMarker(isLeader, color);
     }
 
     /// <summary>
-    /// Cria/destroi um diamante (octaedro) flutuando acima da cabeça do líder.
-    /// O mesh é gerado uma única vez e compartilhado entre todos os marcadores.
+    /// Cria/destroi o marcador flutuante acima da cabeça do líder.
+    /// Usa o prefab informado no Inspector; se vazio, gera um octaedro procedural.
     /// </summary>
     private void UpdateLeaderMarker(bool isLeader, Color color)
     {
-        if (!isLeader)
+        if (!isLeader || !_showLeaderMarker)
         {
             if (_leaderMarker != null) Destroy(_leaderMarker);
             _leaderMarker = null;
+            _leaderMarkerMat = null;
             return;
         }
 
         if (_leaderMarker == null)
         {
-            _leaderMarker = new GameObject("LeaderMarker");
-            _leaderMarker.transform.SetParent(transform, false);
-            _leaderMarker.transform.localPosition = new Vector3(0f, MARKER_HEIGHT, 0f);
-            _leaderMarker.transform.localScale = Vector3.one * MARKER_SIZE;
+            if (_leaderMarkerPrefab != null)
+            {
+                _leaderMarker = Instantiate(_leaderMarkerPrefab, transform);
+                Renderer rend = _leaderMarker.GetComponentInChildren<Renderer>();
+                if (rend != null)
+                    _leaderMarkerMat = rend.material; // instância própria, segura para tingir
+            }
+            else
+            {
+                _leaderMarker = BuildProceduralMarker();
+            }
 
-            MeshFilter mf = _leaderMarker.AddComponent<MeshFilter>();
-            MeshRenderer mr = _leaderMarker.AddComponent<MeshRenderer>();
-            mf.sharedMesh = GetDiamondMesh();
-            // material independente para tingir conforme cor do grupo (brilhante)
-            Material m = new Material(Shader.Find("Standard"));
-            m.color = Color.Lerp(color, Color.white, 0.5f);
-            m.EnableKeyword("_EMISSION");
-            m.SetColor("_EmissionColor", Color.Lerp(color, Color.white, 0.7f) * 1.2f);
-            mr.material = m;
+            _leaderMarker.transform.localPosition = new Vector3(0f, _markerHeight, 0f);
+            _leaderMarker.transform.localScale = Vector3.one * _markerSize;
+        }
+
+        // tinge o marcador com a cor exata do grupo (atualiza caso o grupo mude)
+        if (_tintMarkerWithGroupColor && _leaderMarkerMat != null)
+        {
+            _leaderMarkerMat.color = color;
+            if (_leaderMarkerMat.HasProperty("_EmissionColor"))
+                _leaderMarkerMat.SetColor("_EmissionColor", color);
         }
 
         // animação simples: gira em Y
-        _leaderMarker.transform.localRotation = Quaternion.Euler(0f, Time.time * 120f, 0f);
+        _leaderMarker.transform.localRotation = Quaternion.Euler(0f, Time.time * _markerSpinSpeed, 0f);
+    }
+
+    /// <summary>Octaedro procedural usado quando nenhum prefab de marcador é informado.</summary>
+    private GameObject BuildProceduralMarker()
+    {
+        GameObject marker = new GameObject("LeaderMarker");
+        marker.transform.SetParent(transform, false);
+
+        MeshFilter mf = marker.AddComponent<MeshFilter>();
+        MeshRenderer mr = marker.AddComponent<MeshRenderer>();
+        mf.sharedMesh = GetDiamondMesh();
+        _leaderMarkerMat = new Material(Shader.Find("Standard"));
+        _leaderMarkerMat.EnableKeyword("_EMISSION");
+        mr.material = _leaderMarkerMat;
+        return marker;
     }
 
     private static Mesh GetDiamondMesh()
@@ -242,9 +277,9 @@ public class VisualAgent : MonoBehaviour
 
     private void Update()
     {
-        // mantém o diamante girando, mesmo entre chamadas de ApplyGroupColor
+        // mantém o marcador girando, mesmo entre chamadas de ApplyGroupColor
         if (_leaderMarker != null)
-            _leaderMarker.transform.localRotation = Quaternion.Euler(0f, Time.time * 120f, 0f);
+            _leaderMarker.transform.localRotation = Quaternion.Euler(0f, Time.time * _markerSpinSpeed, 0f);
     }
 
 

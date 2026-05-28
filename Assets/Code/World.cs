@@ -509,6 +509,12 @@ namespace Biocrowds.Core
             foreach(Agent a in _agentsToRemove)
             {
                 _agents.Remove(a);
+
+                // Remove do registro central antes de destruir, senão Group.Agents/Leader
+                // ficam com referências Unity-null e causam NRE em lookups posteriores.
+                if (GroupManager.Instance != null && a.HasGroup)
+                    GroupManager.Instance.RemoveAgent(a.groupId, a);
+
                 Destroy(a.gameObject);
             }
             _agentsToRemove.Clear();
