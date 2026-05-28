@@ -138,14 +138,6 @@ public class VisualAgent : MonoBehaviour
         ApplyGroupColor(color, false);
     }
 
-    [Header("Destaque do Líder")]
-    [Tooltip("Aplica brilho e escala maior ao corpo do líder.")]
-    [SerializeField] private bool _highlightLeaderBody = true;
-    [Range(0f, 1f)]
-    [SerializeField] private float _leaderBrighten = 0.4f;   // lerp em direção ao branco quando é líder
-    [SerializeField] private float _leaderScale = 1.25f;     // multiplicador de escala uniforme do líder
-    private Vector3 _baseScale = Vector3.zero;    // cached original scale
-
     [Header("Marcador do Líder")]
     [Tooltip("Liga/desliga o marcador flutuante acima da cabeça do líder.")]
     [SerializeField] private bool _showLeaderMarker = true;
@@ -161,7 +153,8 @@ public class VisualAgent : MonoBehaviour
     private static Mesh _diamondMeshCache;      // mesh do octaedro procedural, compartilhado
 
     /// <summary>
-    /// Aplica a cor do grupo destacando o líder do grupo (brilho + escala maior).
+    /// Aplica a cor do grupo. O líder é marcado apenas pelo marcador flutuante (diamante),
+    /// sem brilho nem escala diferente no corpo.
     /// </summary>
     public void ApplyGroupColor(Color color, bool isLeader)
     {
@@ -170,19 +163,11 @@ public class VisualAgent : MonoBehaviour
             CacheRenderersAndMaterials();
         }
 
-        Color finalColor = (isLeader && _highlightLeaderBody) ? Color.Lerp(color, Color.white, _leaderBrighten) : color;
-
         foreach (Material mat in _materials)
         {
             if (mat != null)
-                mat.color = finalColor;
+                mat.color = color;
         }
-
-        // cache the original (non-leader) scale once so toggling leader on/off is reversible
-        if (_baseScale == Vector3.zero)
-            _baseScale = transform.localScale;
-
-        transform.localScale = (isLeader && _highlightLeaderBody) ? _baseScale * _leaderScale : _baseScale;
 
         UpdateLeaderMarker(isLeader, color);
     }

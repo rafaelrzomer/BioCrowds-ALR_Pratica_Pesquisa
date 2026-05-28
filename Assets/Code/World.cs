@@ -550,9 +550,16 @@ namespace Biocrowds.Core
             newAgent.name = "Agent [" + GetNewAgentID() + "]";  //name
             newAgent.CurrentCell = GetClosestCellToPoint(_pos);
             newAgent.agentRadius = AGENT_RADIUS;  //agent radius
+            newAgent.goalDistThreshold = GOAL_DISTANCE_THRESHOLD;
             newAgent.Goal = _goalList[0];  //agent goal
             newAgent.goalsList = _goalList;
             newAgent.removeWhenGoalReached = _removeWhenGoalReached;
+            // sem SpawnArea: agente nasce solo com personalidade randomizada
+            // (alinhado a SpawnNewAgentInArea, que define esses campos pós-Instantiate).
+            newAgent.groupId = -1;
+            newAgent.timeSinceSpawn = 0f;
+            newAgent.dominance = Random.Range(0f, 1f);
+            newAgent.affinity = Random.Range(0f, 1f);
             newAgent.World = this;
             _agents.Add(newAgent);
         }

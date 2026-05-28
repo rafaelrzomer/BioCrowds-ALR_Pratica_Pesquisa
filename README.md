@@ -8,30 +8,21 @@ Baseado em <https://github.com/Virtual-Humans-Lab/BioCrowds>.
 
 ## Releases (Dev Log)
 
-Cada release está mapeada para uma tag Git (`git tag`) e referencia diretamente uma entrada do **Caderno de Pesquisa**. Tags publicadas no GitHub aparecem em <https://github.com/rafaelrzomer/BioCrowds-ALR_Pratica_Pesquisa/releases>.
+Resumo por release. **Detalhes completos em [`CHANGELOG.md`](CHANGELOG.md).** Tags publicadas no GitHub: <https://github.com/rafaelrzomer/BioCrowds-ALR_Pratica_Pesquisa/releases>.
 
-| Tag | Data (Caderno) | Resumo | Commit |
+| Tag | Data | Resumo | Commit |
 |---|---|---|---|
-| `v0.1.0` | 21/04/2026 | Fork do BioCrowds-GS e cenário do museu adicionado. | `93028ed` |
-| `v0.2.0` | 06/05/2026 (5ª reunião) | `Agent.dominance` e `Agent.affinity` com `[Range(0,1)]`. `groupId` em `Agent` e `SpawnArea`. `FindNearbyGroupMembers` + força de coesão na direção do líder. `UpdateGroupLeaders` elege líder por maior `dominance`. | `8707bdc` |
-| `v0.3.0` | 08/05/2026 | `World._groupAffinityAverages` (média de afinidade por grupo). `EvaluateGroupProximityAndSwitches` + `ShouldAgentSwitchGroup`: troca de grupo por diferença de afinidade entre grupos próximos. `Agent.SwitchGroup`. | `99efa94` |
-| `v0.4.0` | 13/05/2026 | `EvaluateSoloAgentsMeetings` (dois solos próximos com afinidade compatível formam grupo via `_nextGroupId`). `EvaluateSoloAgentsJoiningGroups` (solo entra em grupo próximo afim). `GROUP_SWITCH_GRACE_PERIOD` pós-spawn. `GroupColorManager` singleton + `VisualAgent.ApplyGroupColor`. | `b876990` |
-| `v0.5.0` | 14/05/2026 (7ª reunião) | `timeSinceSpawn = 0f` no spawn (grace period passa a valer de verdade). 4 bugs de troca corrigidos (solo duplo-grupo, swap oscilante, reprocesso de solo, proximidade inviável). Coesão por modulação de pesos via `_effectiveGoalDir` (preserva *collision-free*). Throttle de dinâmica de grupo (`GROUP_EVAL_INTERVAL = 5`), `sqrMagnitude`, *early exit*, pooling (`_groupsScratch`, `_agentListPool`, `_soloScratch`). Brilho/escala 1.25× no líder via `VisualAgent.ApplyGroupColor(Color, bool)`. | `9e2cf24` |
-| `v0.6.0` | 21/05/2026 | Local avoidance (repulsão de curto alcance) para quebrar formação em fila. Modulação por personalidade em `GetF` e `CalculateVelocity` (dominance, affinity). `WAIT_TIME_MULTIPLIER` em `World`. `GROUP_PROXIMITY_DISTANCE = 15`, `AFFINITY_SWITCH_THRESHOLD = 0.6`, `GROUP_SWITCH_GRACE_PERIOD = 0.1`. | `a33d674` |
-| `v0.7.0` | 22/05/2026 (8ª reunião) | `Group.cs` (id, leader, agents, goals) + `GroupManager.cs` (singleton, lista serializada, lookup O(1), `MoveAgent`, `SetLeader`, `DumpToLog`). Sincronização contínua de goals no `WaitStep` (follower copia `CurrentGoalIndex` do líder). Comportamento por distância ao líder via `leaderSyncRadius`. Fallback de líder morto. Afinidade por `SpawnArea` (`affinityMin` / `affinityMax`). Eleição com tenure mínima (`LEADER_MIN_TENURE = 5s`). Diamante procedural acima da cabeça do líder (`VisualAgent`). Tecla `G` → `DumpToLog`. | `7a3b226` |
-| `v0.8.0` | 28/05/2026 | Remoção de `Debug.Break()` em `SetupWorld` (pausava o Editor logo após `_isReady = true`, bloqueando movimento e eleição de líder). `GroupManager.GetOrCreate` insere ordenado por `Id`, alinhando `Element N` do Inspector ao `groupId` real. `Assets/Editor/GroupDrawer.cs`: `PropertyDrawer` pinta o header da lista como `"Grupo {id}"`. Remoção segura de agentes: `World` chama `GroupManager.RemoveAgent` antes de `Destroy` (evita NRE por refs Unity-null em `Group.Agents`/`Leader`). Diamante do líder usa a cor exata do grupo (sem lavar para branco) e re-tinge ao trocar de grupo. Marcador do líder configurável no Inspector de `VisualAgent` (`_showLeaderMarker`, `_leaderMarkerPrefab` opcional com fallback procedural, `_tintMarkerWithGroupColor`, altura/escala/rotação). | `400b8b9` |
+| `v0.9.0` | 28/05/2026 | Diamante 3D como marcador do líder; remoção de brilho/escala do corpo; `SpawnNewAgent` legado alinhado. | _pendente_ |
+| `v0.8.0` | 28/05/2026 | `Debug.Break` removido; grupos ordenados no Inspector; remoção segura de agentes; marcador do líder configurável. | `400b8b9` |
+| `v0.7.0` | 22/05/2026 | `Group` + `GroupManager`; sync de goals; tenure de líder; affinity por `SpawnArea`; diamante; tecla `G`. | `7a3b226` |
+| `v0.6.0` | 21/05/2026 | Local avoidance; modulação por personalidade; `WAIT_TIME_MULTIPLIER`. | `a33d674` |
+| `v0.5.0` | 14/05/2026 | Correção de 4 bugs de troca; coesão por pesos; performance (throttle/pooling); destaque visual do líder. | `9e2cf24` |
+| `v0.4.0` | 13/05/2026 | Solos formam/entram em grupos; grace period; cores por grupo. | `b876990` |
+| `v0.3.0` | 08/05/2026 | Média de afinidade por grupo; troca de grupo por afinidade. | `99efa94` |
+| `v0.2.0` | 06/05/2026 | `dominance`/`affinity`/`groupId`; coesão; eleição de líder. | `8707bdc` |
+| `v0.1.0` | 21/04/2026 | Fork do BioCrowds-GS + cena do museu. | `93028ed` |
 
-### Como criar uma nova release
-
-```bash
-# Anotada na branch atual (dev-Humberto-Pedro)
-git tag -a v0.X.0 -m "Resumo da release"
-
-# Publicar no GitHub (cria a entrada em Releases)
-git push origin v0.X.0
-```
-
-No GitHub, abra <https://github.com/rafaelrzomer/BioCrowds-ALR_Pratica_Pesquisa/releases/new>, selecione a tag e cole o resumo da entrada correspondente do Caderno.
+Como criar uma nova release: ver [`CHANGELOG.md`](CHANGELOG.md#como-criar-uma-nova-release).
 
 ---
 
@@ -162,49 +153,7 @@ Alinhado ao **Caderno de Pesquisa** do grupo (Google Docs) e às reuniões com a
 
 ### ✅ Já entregue
 
-Resumo cronológico. Detalhes técnicos por commit/tag em **Releases (Dev Log)** acima.
-
-| Status | Release | Data (Caderno) | Item |
-|:---:|:---:|:---:|---|
-| ✅ | `v0.1.0` | 21/04/2026 | Fork do BioCrowds-GS e cenário do museu adicionado ao projeto. |
-| ✅ | `v0.2.0` | 06/05/2026 | Campos `dominance` e `affinity` em `Agent` com `[Range(0,1)]`. |
-| ✅ | `v0.2.0` | 06/05/2026 | `groupId` em `Agent` e `SpawnArea`; propagação via `World.SpawnNewAgent`. |
-| ✅ | `v0.2.0` | 06/05/2026 | Coesão de grupo: `FindNearbyGroupMembers` + força de atração ao líder. |
-| ✅ | `v0.2.0` | 06/05/2026 | Eleição de líder por maior `dominance` (`UpdateGroupLeaders`). |
-| ✅ | `v0.3.0` | 08/05/2026 | Média de afinidade por grupo (`World.GroupAffinityAverages`). |
-| ✅ | `v0.3.0` | 08/05/2026 | Troca de grupo por proximidade + diferença de afinidade (`EvaluateGroupProximityAndSwitches`, `ShouldAgentSwitchGroup`, `Agent.SwitchGroup`). |
-| ✅ | `v0.4.0` | 13/05/2026 | Agentes solo formam grupo entre si (`EvaluateSoloAgentsMeetings` + `_nextGroupId`). |
-| ✅ | `v0.4.0` | 13/05/2026 | Agentes solo entram em grupos existentes (`EvaluateSoloAgentsJoiningGroups`). |
-| ✅ | `v0.4.0` | 13/05/2026 | `GROUP_SWITCH_GRACE_PERIOD` pós-spawn. |
-| ✅ | `v0.4.0` | 13/05/2026 | Cores por grupo via `GroupColorManager` singleton + `VisualAgent.ApplyGroupColor`. |
-| ✅ | `v0.5.0` | 14/05/2026 | Correção: `EvaluateSoloAgentsMeetings` não move o mesmo solo para múltiplos grupos no mesmo frame. |
-| ✅ | `v0.5.0` | 14/05/2026 | Correção: `EvaluateGroupSwaps` sem swap recíproco oscilatório (coleta nos dois sentidos e aplica só o bloco maior). |
-| ✅ | `v0.5.0` | 14/05/2026 | Correção: `EvaluateSoloAgentsJoiningGroups` não reprocessa agente já agrupado. |
-| ✅ | `v0.5.0` | 14/05/2026 | `GROUP_PROXIMITY_DISTANCE` ajustado (1.0 era inviável com `agentRadius = 1.0`). |
-| ✅ | `v0.5.0` | 14/05/2026 | `Agent.timeSinceSpawn = 0f` no spawn — grace period passa a valer. |
-| ✅ | `v0.5.0` | 14/05/2026 | Coesão via modulação de pesos (`_effectiveGoalDir` em `GetF`); preserva *collision-free* do BioCrowds. |
-| ✅ | `v0.5.0` | 14/05/2026 | Coesão escalada por `1/√groupSize` (anti-jam em grupos grandes). |
-| ✅ | `v0.5.0` | 14/05/2026 | Throttle `GROUP_EVAL_INTERVAL = 5`, `sqrMagnitude`, *early exit*, pooling (`_groupsScratch`, `_agentListPool`, `_soloScratch`). |
-| ✅ | `v0.5.0` | 14/05/2026 | Marcador visual do líder: brilho (`Color.Lerp → white, 0.4`) + escala `× 1.25` via `ApplyGroupColor(Color, bool isLeader)`. |
-| ✅ | `v0.5.0` | 14/05/2026 | Diagnóstico `DEBUG_LOG_GROUP_CHANGES` com contadores por eval cycle. |
-| ✅ | `v0.5.0` | 14/05/2026 | Eliminação de viés contra grupo de menor `id` (desempate aleatório; solo escolhe grupo mais afim, não o primeiro). |
-| ✅ | `v0.6.0` | 21/05/2026 | Local avoidance (repulsão de curto alcance) — quebra formação em fila. |
-| ✅ | `v0.6.0` | 21/05/2026 | Modulação por personalidade em `GetF` e `CalculateVelocity` (`dominance`, `affinity`). |
-| ✅ | `v0.6.0` | 21/05/2026 | `WAIT_TIME_MULTIPLIER` em `World` — agentes esperam mais em cada goal. |
-| ✅ | `v0.7.0` | 22/05/2026 | `Group.cs` (id, leader, agents, goals) + `GroupManager.cs` (singleton, lista serializada, lookup O(1), `MoveAgent`, `SetLeader`, `DumpToLog`). |
-| ✅ | `v0.7.0` | 22/05/2026 | Sincronização contínua de goals: follower copia `CurrentGoalIndex` do líder em `WaitStep`. |
-| ✅ | `v0.7.0` | 22/05/2026 | Comportamento por distância ao líder via `leaderSyncRadius` (sincroniza dentro do raio; vai em direção ao líder fora dele). |
-| ✅ | `v0.7.0` | 22/05/2026 | Fallback de líder morto (follower age com `goalsList` próprio). |
-| ✅ | `v0.7.0` | 22/05/2026 | Afinidade por `SpawnArea` (`affinityMin` / `affinityMax`); bug do `Agent.Start()` que sobrescrevia o valor corrigido. |
-| ✅ | `v0.7.0` | 22/05/2026 | Eleição com tenure mínima (`LEADER_MIN_TENURE = 5s`). |
-| ✅ | `v0.7.0` | 22/05/2026 | Diamante procedural acima da cabeça do líder em `VisualAgent` (mesh cacheado estaticamente). |
-| ✅ | `v0.7.0` | 22/05/2026 | Tecla `G` → `GroupManager.DumpToLog()`. |
-| ✅ | `v0.8.0` | 27/05/2026 | `Debug.Break()` em `SetupWorld` removido — destravar movimento e eleição de líder. |
-| ✅ | `v0.8.0` | 27/05/2026 | `GroupManager.GetOrCreate` insere ordenado por `Id` — `Element N` do Inspector alinhado ao `groupId`. |
-| ✅ | `v0.8.0` | 27/05/2026 | `Assets/Editor/GroupDrawer.cs` — `PropertyDrawer` pinta header como `"Grupo {id}"`. |
-| ✅ | `v0.8.0` | 28/05/2026 | Remoção segura de agentes: `World` chama `GroupManager.RemoveAgent` antes de `Destroy` — evita NRE por refs Unity-null em `Group.Agents`/`Leader`. |
-| ✅ | `v0.8.0` | 28/05/2026 | Diamante do líder usa a cor exata do grupo (sem lavar para branco) e re-tinge ao trocar de grupo. |
-| ✅ | `v0.8.0` | 28/05/2026 | Marcador do líder configurável em `VisualAgent`: `_showLeaderMarker`, `_leaderMarkerPrefab` (opcional, fallback procedural), `_tintMarkerWithGroupColor`, altura/escala/rotação. |
+Histórico detalhado por release em [`CHANGELOG.md`](CHANGELOG.md). Resumo das versões na tabela **Releases (Dev Log)** acima.
 
 ### ⏳ Curto prazo — pendente
 
