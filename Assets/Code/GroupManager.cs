@@ -92,6 +92,23 @@ namespace Biocrowds.Core
             return g != null ? g.Leader : null;
         }
 
+        /// <summary>
+        /// Remove grupos sem membros do registro (lista e índice). Chamar após as operações
+        /// de grupo do eval cycle. Grupos podem ser recriados por GetOrCreate se voltarem a receber agentes.
+        /// </summary>
+        public void PruneEmptyGroups()
+        {
+            for (int i = _groups.Count - 1; i >= 0; i--)
+            {
+                Group g = _groups[i];
+                if (g == null || g.Count == 0)
+                {
+                    if (g != null) _groupsById.Remove(g.Id);
+                    _groups.RemoveAt(i);
+                }
+            }
+        }
+
         public void SetLeader(int groupId, Agent leader)
         {
             Group g = GetOrCreate(groupId);

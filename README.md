@@ -158,10 +158,10 @@ Histórico detalhado por release em [`CHANGELOG.md`](CHANGELOG.md). Resumo das v
 
 | Status | Item | Notas |
 |:---:|---|---|
-| ⏳ | Migrar `Update` → `FixedUpdate` | Desacopla simulação do frame de render. Afeta toda a malha de chamadas — requer teste cuidadoso. |
-| ⏳ | Spatial grid via `CurrentCell ± 1` | Acelera `FindNearbyGroupMembers` e proximidade entre grupos. Ganho proporcional a `N`; vale para multidões grandes. |
-| ⏳ | Adicionar `GroupManager` em todas as cenas | Sem o componente, o registro central fica inativo (código tem fallback, mas Inspector / tecla `G` não funcionam). |
-| ⏳ | Limpeza de grupos vazios em `GroupManager` | Grupos cujos membros migraram permanecem na lista (intencional para depuração); revisar antes de medir métricas. |
+| ⏳ | Migrar `Update` → `FixedUpdate` | Desacopla simulação do frame de render. Afeta toda a malha de chamadas — **adiado**: alto risco, precisa de sessão dedicada com teste runtime. |
+| ⏳ | Spatial grid via `CurrentCell ± 1` | Acelera `FindNearbyGroupMembers` e proximidade entre grupos. **Adiado**: só vale para multidões grandes; mantém O(N²) simples por ora. |
+| ✅ | Adicionar `GroupManager` em todas as cenas | Resolvido via auto-bootstrap: `World.Awake` cria um `GroupManager` se nenhum existir na cena. |
+| ✅ | Limpeza de grupos vazios em `GroupManager` | `GroupManager.PruneEmptyGroups()` chamado ao fim de cada eval cycle em `World`. |
 
 ### 📊 Médio prazo — testes e métricas (Caderno)
 

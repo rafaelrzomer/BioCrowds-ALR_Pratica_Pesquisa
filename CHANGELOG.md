@@ -14,6 +14,8 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
 - Removidos brilho e escala 1.25× do corpo do líder (`_highlightLeaderBody`, `_leaderBrighten`, `_leaderScale` apagados) — líder marcado **apenas** pelo diamante.
 - `SpawnNewAgent` legado alinhado a `SpawnNewAgentInArea` (define `groupId`, `timeSinceSpawn`, `dominance`, `affinity`).
 - Confirmado: affinity do spawner já é aplicada corretamente (sem sobrescrita em `Agent.Start`). Log de spawn opcional gated por `DEBUG_LOG_GROUP_CHANGES`.
+- Auto-bootstrap do `GroupManager`: `World.Awake` cria um se nenhum existir na cena (registro central sempre ativo).
+- `GroupManager.PruneEmptyGroups()` remove grupos sem membros ao fim de cada eval cycle.
 
 > ⚠️ **Aviso (config de cena):** SpawnArea com `affinityMin/affinityMax = [0, 1]` gera afinidade aleatória total — os membros desse grupo **não** têm coesão de afinidade entre si. Para um grupo coeso, aperte o range no Inspector da SpawnArea (ex.: `[0.4, 0.5]`). Na `Museu.unity`, o grupo 0 está com `[0, 1]`.
 

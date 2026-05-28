@@ -173,6 +173,15 @@ namespace Biocrowds.Core
         {
             _newAgentID = 0;
             _nextGroupId = 0;
+
+            // garante um GroupManager na cena mesmo que nenhum tenha sido adicionado manualmente.
+            // AddComponent dispara o Awake do GroupManager, que registra o singleton Instance.
+            if (GroupManager.Instance == null)
+            {
+                GameObject gmGO = new GameObject("GroupManager (auto)");
+                gmGO.AddComponent<GroupManager>();
+            }
+
             if (spawnAreas.Count == 0)
                 spawnAreas = FindObjectsOfType<SpawnArea>().ToList();
 
@@ -450,6 +459,10 @@ namespace Biocrowds.Core
 
                 // evaluate solo agents joining existing groups
                 EvaluateSoloAgentsJoiningGroups();
+
+                // remove grupos esvaziados após migrações deste ciclo
+                if (GroupManager.Instance != null)
+                    GroupManager.Instance.PruneEmptyGroups();
 
                 if (DEBUG_LOG_GROUP_CHANGES && (_switchesThisCycle > 0 || _newGroupsThisCycle > 0 || _soloJoinsThisCycle > 0))
                 {
