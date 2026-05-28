@@ -210,7 +210,6 @@ Resumo cronológico. Detalhes técnicos por commit/tag em **Releases (Dev Log)**
 
 | Status | Item | Notas |
 |:---:|---|---|
-| ⚠️ | Reparar `Assets/Prefabs/AgentPrefab.prefab` | Prefab aninhado com `guid: 7dcf00d1126974d4996a7ef29c81ca22` faltando. Correção precisa ser feita pelo Editor Unity (não é seguro editar o YAML à mão). |
 | ⏳ | Migrar `Update` → `FixedUpdate` | Desacopla simulação do frame de render. Afeta toda a malha de chamadas — requer teste cuidadoso. |
 | ⏳ | Spatial grid via `CurrentCell ± 1` | Acelera `FindNearbyGroupMembers` e proximidade entre grupos. Ganho proporcional a `N`; vale para multidões grandes. |
 | ⏳ | Adicionar `GroupManager` em todas as cenas | Sem o componente, o registro central fica inativo (código tem fallback, mas Inspector / tecla `G` não funcionam). |

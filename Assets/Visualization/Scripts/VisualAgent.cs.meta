@@ -3,7 +3,9 @@ guid: 6fbce5155dd823c488376c9ae3007fc7
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
-  defaultReferences: []
+  defaultReferences:
+  - _leaderMarkerPrefab: {fileID: 919132149155446097, guid: b61ba4a6b7241c84c86154e9c0c02917,
+      type: 3}
   executionOrder: 200
   icon: {instanceID: 0}
   userData: 

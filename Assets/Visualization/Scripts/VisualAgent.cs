@@ -208,7 +208,11 @@ public class VisualAgent : MonoBehaviour
                 _leaderMarker = Instantiate(_leaderMarkerPrefab, transform);
                 Renderer rend = _leaderMarker.GetComponentInChildren<Renderer>();
                 if (rend != null)
+                {
                     _leaderMarkerMat = rend.material; // instância própria, segura para tingir
+                    if (_tintMarkerWithGroupColor)
+                        _leaderMarkerMat.EnableKeyword("_EMISSION"); // permite brilho na cor do grupo
+                }
             }
             else
             {
