@@ -60,7 +60,7 @@ namespace Biocrowds.Core
             int insertAt = _groups.Count;
             for (int i = 0; i < _groups.Count; i++)
             {
-                if (_groups[i].Id > id) { insertAt = i; break; }
+                if (_groups[i] != null && _groups[i].Id > id) { insertAt = i; break; }
             }
             _groups.Insert(insertAt, g);
             return g;
@@ -128,6 +128,7 @@ namespace Biocrowds.Core
             Debug.Log($"[GroupManager] {_groups.Count} grupos ativos");
             foreach (Group g in _groups)
             {
+                if (g == null) continue;
                 string leaderName = g.Leader != null ? g.Leader.name : "(sem líder)";
                 Debug.Log($"  Grupo {g.Id} | líder: {leaderName} | {g.Count} agentes");
                 foreach (Agent a in g.Agents)

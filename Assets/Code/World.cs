@@ -176,7 +176,7 @@ namespace Biocrowds.Core
 
             // garante um GroupManager na cena mesmo que nenhum tenha sido adicionado manualmente.
             // AddComponent dispara o Awake do GroupManager, que registra o singleton Instance.
-            if (GroupManager.Instance == null)
+            if (GroupManager.Instance == null && FindObjectOfType<GroupManager>() == null)
             {
                 GameObject gmGO = new GameObject("GroupManager (auto)");
                 gmGO.AddComponent<GroupManager>();
