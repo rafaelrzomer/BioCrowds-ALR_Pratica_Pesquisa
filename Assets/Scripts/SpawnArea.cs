@@ -1,4 +1,4 @@
-﻿using System.Collections;
+﻿﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -13,6 +13,10 @@ public class SpawnArea : MonoBehaviour
     [Header("Agent Affinity Range")]
     [Range(0f, 1f)] public float affinityMin = 0f;
     [Range(0f, 1f)] public float affinityMax = 1f;
+
+    [Header("Agent Dominance Range")]
+    [Range(0f, 1f)] public float dominanceMin = 0f;
+    [Range(0f, 1f)] public float dominanceMax = 1f;
 
     [Header("Initial Spawner Settings")]
     public int initialNumberOfAgents;
