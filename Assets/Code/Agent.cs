@@ -261,9 +261,21 @@ namespace Biocrowds.Core
                     }
                     else
                     {
+                        /* Gabriel: 
+                         * Atualiza o goalIndex, indiferente de estar perto do lider
+                         * Isso impede que o agente reinicie os objetivos quando o lider é detruíso
+                         * */
+                        goalIndex = Mathf.Clamp(leader.CurrentGoalIndex, 0, goalsList.Count - 1);
+                        Goal = goalsList[goalIndex];
+                        /* Gabriel: 
+                         * Força o agente a não esperar, pois está longe do lider
+                         * */
+                        isWaiting = false;
+                        waitCount = 0f;
                         // longe do líder — ignora goal próprio e vai em direção ao líder
                         _goalPosition = leader.transform.position;
                         _dirAgentGoal = _goalPosition - transform.position;
+                        
                     }
 
                     return;
