@@ -589,16 +589,16 @@ namespace Biocrowds.Core
             if (_isInitialSpawn)
             {
                 newAgent.Goal = _area.initialAgentsGoalList[0];  //agent goal
-                newAgent.goalsList = _area.initialAgentsGoalList;
+                newAgent.goalsList = new List<GameObject>(_area.initialAgentsGoalList);
                 newAgent.removeWhenGoalReached = _area.initialRemoveWhenGoalReached;
-                newAgent.goalsWaitList = _area.initialWaitList;
+                newAgent.goalsWaitList = new List<float>(_area.initialWaitList);
             }
             else
             {
                 newAgent.Goal = _area.repeatingGoalList[0];  //agent goal
-                newAgent.goalsList = _area.repeatingGoalList;
+                newAgent.goalsList = new List<GameObject>(_area.repeatingGoalList);
                 newAgent.removeWhenGoalReached = _area.repeatingRemoveWhenGoalReached;
-                newAgent.goalsWaitList = _area.repeatingWaitList;
+                newAgent.goalsWaitList = new List<float>(_area.repeatingWaitList);
             }
             newAgent.groupId = _area.groupId;
             newAgent.timeSinceSpawn = 0f;
