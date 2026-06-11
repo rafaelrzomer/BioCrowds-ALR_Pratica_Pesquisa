@@ -159,9 +159,21 @@ Histórico detalhado por release em [`CHANGELOG.md`](CHANGELOG.md). Resumo das v
 
 | Status | Item | Notas |
 |:---:|---|---|
-| ⏳ | Migrar `Update` → `FixedUpdate` | Desacopla simulação do frame de render. Afeta toda a malha de chamadas — **adiado**: alto risco, precisa de sessão dedicada com teste runtime. |
-| ⏳ | Spatial grid via `CurrentCell ± 1` | Acelera `FindNearbyGroupMembers` e proximidade entre grupos. **Adiado**: só vale para multidões grandes; mantém O(N²) simples por ora. |
-| ⏳ | Exportação de dados | CSV / JSON para análise externa e gráficos. |
+| ⏳ | Definição e montagem do **cenário complexo** | 10ª reunião (11/06/2026). Cenário de demonstração que evidencie evolução de grupos por afinidade. Base para os experimentos do artigo. |
+| ⏳ | Exportação de dados | CSV / JSON para análise externa e gráficos. Insumo dos resultados do artigo. |
+ 
+### 📝 Artigo (10ª reunião — 11/06/2026)
+
+> Estrutura e pendências do artigo levantadas na **10ª reunião com a orientadora**. Conectado às métricas e cenários do médio prazo.
+
+| Status | Item | Notas |
+|:---:|---|---|
+| ⏳ | Footnote com link do vídeo | Nota de rodapé apontando para vídeo de demonstração da simulação. |
+| ⏳ | Seção **Resultados** | Cenários de experimentos + **sociograma** (do trabalho original) + métricas exportadas em CSV. |
+| ⏳ | Seção **Metodologia** | Documentar o que foi adicionado sobre o modelo base: dinâmica de grupos, proximidade, troca por afinidade. |
+| ⏳ | Seção **Trabalhos relacionados** | Remover subseções; adicionar um trabalho mais genérico além dos atuais. |
+
+**Pitch (10ª reunião):** o projeto não só simula comportamento de grupos, mas como esses grupos **evoluem/mudam por afinidade**; suporta **diversos cenários**; e **coleta métricas** (coesão entre grupos, etc.).
 
 ### 📊 Médio prazo — testes e métricas (Caderno)
 
@@ -169,14 +181,17 @@ Histórico detalhado por release em [`CHANGELOG.md`](CHANGELOG.md). Resumo das v
 
 | Status | Item | Notas |
 |:---:|---|---|
-| 📊 | Cenários múltiplos para experimentos | Duplicar a cena do museu com variações controladas: poucos vs. muitos agentes, afinidades polarizadas vs. uniformes, layout aberto vs. corredor. Gravar vídeo e anotar métricas. |
-| 📊 | Métricas para os experimentos | **Coesão de grupo:** distância média ao centróide do grupo. **Trocas de grupo** por intervalo. **Tamanho dos grupos** ao longo da simulação. |
+| 📊 | Cenários múltiplos para experimentos | Duplicar a cena do museu com variações controladas: poucos vs. muitos agentes, afinidades polarizadas vs. uniformes, layout aberto vs. corredor. Gravar vídeo e anotar métricas. Inclui o **cenário complexo** da 10ª reunião. |
+| 📊 | Métricas para os experimentos | **Coesão de grupo:** distância média ao centróide do grupo. **Trocas de grupo** por intervalo. **Tamanho dos grupos** ao longo da simulação. **Coesão entre grupos** (10ª reunião). |
+| 📊 | Sociograma | Reproduzir o sociograma do trabalho original (Musse & Thalmann) para os resultados do artigo. |
 | 📊 | HUD runtime de métricas | Painel ao vivo, separado do Console / Inspector. |
 | 📊 | Bateria de testes de variação | Caderno 14/05/2026 — *"dois grupos com muita afinidade e dois grupos com afinidades muito distantes, testar variação de comportamentos"*. |
 | 📊 | Métricas inspiradas em WebCrowds | Density Map, Trajectories Map, Simulation Time. |
 | 📊 | Interface runtime para ditar grupos e comportamentos | Caderno 01/04/2026. Painel no Play exibindo/editando `groupId`, `affinity`, `dominance`, `isGroupLeader`. |
 | 📊 | Seed reproduzível | Substituir `Random.Range` por RNG inicializado em `World` com seed no Inspector — pré-requisito para comparar runs. |
-| 📊 | Estrutura do trabalho/apresentação final | 8ª reunião: Introdução → Trabalhos relacionados → Modelo (o que foi adicionado, parâmetros novos, resultados) → Métricas dos experimentos. |
+|  | Estrutura do trabalho/apresentação final | 8ª reunião: Introdução → Trabalhos relacionados → Modelo (o que foi adicionado, parâmetros novos, resultados) → Métricas dos experimentos. Detalhamento do artigo na seção **Artigo** acima. |
+| 📊 | Migrar `Update` → `FixedUpdate` | Desacopla simulação do frame de render. Afeta toda a malha de chamadas — **adiado**: alto risco, precisa de sessão dedicada com teste runtime. |
+| 📊 | Spatial grid via `CurrentCell ± 1` | Acelera `FindNearbyGroupMembers` e proximidade entre grupos. **Adiado**: só vale para multidões grandes; mantém O(N²) simples por ora. |
 
 ### 🔬 Longo prazo — pesquisa e extensões
 
