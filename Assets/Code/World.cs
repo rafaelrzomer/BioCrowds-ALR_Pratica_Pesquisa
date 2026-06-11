@@ -1,4 +1,4 @@
-﻿/// ---------------------------------------------
+﻿﻿/// ---------------------------------------------
 /// Contact: Henry Braun
 /// Brief: Defines the world environment
 /// Thanks to VHLab for original implementation
@@ -176,7 +176,7 @@ namespace Biocrowds.Core
 
             // garante um GroupManager na cena mesmo que nenhum tenha sido adicionado manualmente.
             // AddComponent dispara o Awake do GroupManager, que registra o singleton Instance.
-            if (GroupManager.Instance == null)
+            if (GroupManager.Instance == null && FindObjectOfType<GroupManager>() == null)
             {
                 GameObject gmGO = new GameObject("GroupManager (auto)");
                 gmGO.AddComponent<GroupManager>();
@@ -589,25 +589,25 @@ namespace Biocrowds.Core
             if (_isInitialSpawn)
             {
                 newAgent.Goal = _area.initialAgentsGoalList[0];  //agent goal
-                newAgent.goalsList = _area.initialAgentsGoalList;
+                newAgent.goalsList = new List<GameObject>(_area.initialAgentsGoalList);
                 newAgent.removeWhenGoalReached = _area.initialRemoveWhenGoalReached;
-                newAgent.goalsWaitList = _area.initialWaitList;
+                newAgent.goalsWaitList = new List<float>(_area.initialWaitList);
             }
             else
             {
                 newAgent.Goal = _area.repeatingGoalList[0];  //agent goal
-                newAgent.goalsList = _area.repeatingGoalList;
+                newAgent.goalsList = new List<GameObject>(_area.repeatingGoalList);
                 newAgent.removeWhenGoalReached = _area.repeatingRemoveWhenGoalReached;
-                newAgent.goalsWaitList = _area.repeatingWaitList;
+                newAgent.goalsWaitList = new List<float>(_area.repeatingWaitList);
             }
             newAgent.groupId = _area.groupId;
             newAgent.timeSinceSpawn = 0f;
-            newAgent.dominance = Random.Range(0f, 1f);
+            newAgent.dominance = Random.Range(_area.dominanceMin, _area.dominanceMax);
             newAgent.affinity = Random.Range(_area.affinityMin, _area.affinityMax);
             newAgent.World = this;
 
             if (DEBUG_LOG_GROUP_CHANGES)
-                Debug.Log($"[Spawn] {newAgent.name} grupo={_area.groupId} affRange=[{_area.affinityMin:F3},{_area.affinityMax:F3}] aff={newAgent.affinity:F3} dom={newAgent.dominance:F3}");
+                Debug.Log($"[Spawn] {newAgent.name} grupo={_area.groupId} affRange=[{_area.affinityMin:F3},{_area.affinityMax:F3}] aff={newAgent.affinity:F3} domRange=[{_area.dominanceMin:F3},{_area.dominanceMax:F3}] dom={newAgent.dominance:F3}");
 
             _agents.Add(newAgent);
 
