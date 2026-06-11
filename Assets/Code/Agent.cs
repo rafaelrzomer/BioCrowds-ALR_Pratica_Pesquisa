@@ -1,4 +1,4 @@
-﻿/// ---------------------------------------------
+﻿﻿/// ---------------------------------------------
 /// Contact: Henry Braun
 /// Brief: Defines an Agent
 /// Thanks to VHLab for original implementation
@@ -258,6 +258,8 @@ namespace Biocrowds.Core
                             waitCount = 0f;
                             UpdateGoalPositionAndNavmesh();
                         }
+
+                        CheckIfAtGoal();
                     }
                     else
                     {
@@ -299,7 +301,13 @@ namespace Biocrowds.Core
                     UpdateGoalPositionAndNavmesh();
                 }
             }
-            else if (IsAtCurrentGoal() && goalIndex < goalsList.Count - 1)
+            else 
+                CheckIfAtGoal();
+        }
+
+        private void CheckIfAtGoal()
+        {
+            if (IsAtCurrentGoal() && goalIndex < goalsList.Count - 1)
             {
                 if (goalsWaitList[goalIndex] >= 0.1f)
                 {
@@ -314,7 +322,7 @@ namespace Biocrowds.Core
                 }
             }
         }
-    
+
 
         //The calculation formula starts here
         //the ideia is to find m=SUM[k=1 to n](Wk*Dk)
