@@ -161,8 +161,7 @@ Histórico detalhado por release em [`CHANGELOG.md`](CHANGELOG.md). Resumo das v
 |:---:|---|---|
 | ⏳ | Migrar `Update` → `FixedUpdate` | Desacopla simulação do frame de render. Afeta toda a malha de chamadas — **adiado**: alto risco, precisa de sessão dedicada com teste runtime. |
 | ⏳ | Spatial grid via `CurrentCell ± 1` | Acelera `FindNearbyGroupMembers` e proximidade entre grupos. **Adiado**: só vale para multidões grandes; mantém O(N²) simples por ora. |
-| ✅ | Adicionar `GroupManager` em todas as cenas | Resolvido via auto-bootstrap: `World.Awake` cria um `GroupManager` se nenhum existir na cena. |
-| ✅ | Limpeza de grupos vazios em `GroupManager` | `GroupManager.PruneEmptyGroups()` chamado ao fim de cada eval cycle em `World`. |
+| ⏳ | Exportação de dados | CSV / JSON para análise externa e gráficos. |
 
 ### 📊 Médio prazo — testes e métricas (Caderno)
 
@@ -173,7 +172,6 @@ Histórico detalhado por release em [`CHANGELOG.md`](CHANGELOG.md). Resumo das v
 | 📊 | Cenários múltiplos para experimentos | Duplicar a cena do museu com variações controladas: poucos vs. muitos agentes, afinidades polarizadas vs. uniformes, layout aberto vs. corredor. Gravar vídeo e anotar métricas. |
 | 📊 | Métricas para os experimentos | **Coesão de grupo:** distância média ao centróide do grupo. **Trocas de grupo** por intervalo. **Tamanho dos grupos** ao longo da simulação. |
 | 📊 | HUD runtime de métricas | Painel ao vivo, separado do Console / Inspector. |
-| 📊 | Exportação de dados | CSV / JSON para análise externa e gráficos. |
 | 📊 | Bateria de testes de variação | Caderno 14/05/2026 — *"dois grupos com muita afinidade e dois grupos com afinidades muito distantes, testar variação de comportamentos"*. |
 | 📊 | Métricas inspiradas em WebCrowds | Density Map, Trajectories Map, Simulation Time. |
 | 📊 | Interface runtime para ditar grupos e comportamentos | Caderno 01/04/2026. Painel no Play exibindo/editando `groupId`, `affinity`, `dominance`, `isGroupLeader`. |
