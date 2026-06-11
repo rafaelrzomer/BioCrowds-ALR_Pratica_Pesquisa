@@ -107,6 +107,11 @@ namespace Biocrowds.Core
         private int _newGroupsThisCycle = 0;
         private int _soloJoinsThisCycle = 0;
 
+        // métricas: escreve CSV por eval cycle para análise externa / gráficos.
+        [SerializeField] private MetricsLogger _metricsLogger;
+        private int _totalSwitches = 0;   // trocas de grupo acumuladas na run
+        private float _simTime = 0f;      // tempo de simulação acumulado (s)
+
         // reusable scratch dictionaries / lists for group evaluation to avoid per-frame GC allocations
         private Dictionary<int, List<Agent>> _groupsScratch;
         private Stack<List<Agent>> _agentListPool;
@@ -250,6 +255,13 @@ namespace Biocrowds.Core
 
             //wait a little bit to start moving
             yield return new WaitForSeconds(1.0f);
+
+            // abre os arquivos CSV de métricas (auto-find se não atribuído no Inspector)
+            if (_metricsLogger == null)
+                _metricsLogger = FindObjectOfType<MetricsLogger>();
+            if (_metricsLogger != null)
+                _metricsLogger.BeginSession();
+
             _isReady = true;
         }
 
@@ -401,6 +413,8 @@ namespace Biocrowds.Core
             if (!_isReady)
                 return;
 
+            _simTime += SIMULATION_TIME_STEP;
+
             foreach (SpawnArea _area in spawnAreas)
             {
                 _area.UpdateSpawnCounter(SIMULATION_TIME_STEP);
@@ -463,6 +477,10 @@ namespace Biocrowds.Core
                 // remove grupos esvaziados após migrações deste ciclo
                 if (GroupManager.Instance != null)
                     GroupManager.Instance.PruneEmptyGroups();
+
+                // métricas: usa _groupsScratch fresco (reconstruído em EvaluateSoloAgentsJoiningGroups)
+                _totalSwitches += _switchesThisCycle;
+                RecordMetrics();
 
                 if (DEBUG_LOG_GROUP_CHANGES && (_switchesThisCycle > 0 || _newGroupsThisCycle > 0 || _soloJoinsThisCycle > 0))
                 {
@@ -803,6 +821,66 @@ namespace Biocrowds.Core
                 _groupAffinityAverages[group.Key] = count > 0 ? totalAffinity / count : 0f;
                 _groupSizes[group.Key] = count;
             }
+        }
+
+        /// <summary>
+        /// Calcula e grava as métricas do eval cycle atual no CSV (via MetricsLogger).
+        /// Por grupo: tamanho, coesão (distância média ao centróide no plano XZ),
+        /// afinidade média e desvio padrão. Resumo global: nº de agentes, grupos, solos e trocas.
+        /// Usa _groupsScratch fresco; recalcula afinidade aqui para refletir a membership pós-migrações.
+        /// </summary>
+        private void RecordMetrics()
+        {
+            if (_metricsLogger == null || !_metricsLogger.LoggingEnabled || _groupsScratch == null)
+                return;
+
+            int numGroups = _groupsScratch.Count;
+
+            foreach (var group in _groupsScratch)
+            {
+                List<Agent> members = group.Value;
+                int count = members.Count;
+                if (count == 0)
+                    continue;
+
+                // centróide no plano XZ
+                Vector3 centroid = Vector3.zero;
+                float affSum = 0f;
+                float affSqSum = 0f;
+                foreach (Agent a in members)
+                {
+                    centroid += a.transform.position;
+                    affSum += a.affinity;
+                    affSqSum += a.affinity * a.affinity;
+                }
+                centroid /= count;
+
+                // coesão = distância média ao centróide (ignora eixo Y)
+                float distSum = 0f;
+                foreach (Agent a in members)
+                {
+                    Vector3 d = a.transform.position - centroid;
+                    d.y = 0f;
+                    distSum += d.magnitude;
+                }
+                float cohesion = distSum / count;
+
+                float meanAff = affSum / count;
+                // variância = E[x²] - E[x]²; clamp a 0 para evitar raiz de valor negativo por erro de ponto flutuante
+                float variance = Mathf.Max(0f, (affSqSum / count) - (meanAff * meanAff));
+                float affStdDev = Mathf.Sqrt(variance);
+
+                _metricsLogger.WriteGroupSample(_simTime, group.Key, count, cohesion, meanAff, affStdDev);
+            }
+
+            int numSolo = 0;
+            foreach (Agent a in _agents)
+            {
+                if (!a.HasGroup)
+                    numSolo++;
+            }
+
+            _metricsLogger.WriteSummarySample(_simTime, _agents.Count, numGroups, numSolo, _switchesThisCycle, _totalSwitches);
         }
 
         private void EvaluateGroupProximityAndSwitches()

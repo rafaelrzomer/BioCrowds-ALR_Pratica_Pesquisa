@@ -160,7 +160,7 @@ Histórico detalhado por release em [`CHANGELOG.md`](CHANGELOG.md). Resumo das v
 | Status | Item | Notas |
 |:---:|---|---|
 | ⏳ | Definição e montagem do **cenário complexo** | 10ª reunião (11/06/2026). Cenário de demonstração que evidencie evolução de grupos por afinidade. Base para os experimentos do artigo. |
-| ⏳ | Exportação de dados | CSV / JSON para análise externa e gráficos. Insumo dos resultados do artigo. |
+| ✅ | Exportação de dados (CSV) | `MetricsLogger.cs` grava dois CSVs por run em `persistentDataPath/Metrics/`: **groups** (time, groupId, groupSize, coesão ao centróide, afinidade média, desvio-padrão de afinidade) e **summary** (time, nº de agentes/grupos/solos, trocas por intervalo e acumuladas). Amostra a cada eval cycle de grupo. |
  
 ### 📝 Artigo (10ª reunião — 11/06/2026)
 
