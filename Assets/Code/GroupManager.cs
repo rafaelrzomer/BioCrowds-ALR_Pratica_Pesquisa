@@ -14,9 +14,38 @@ namespace Biocrowds.Core
 
         // serializada para Inspector; espelha _groupsById
         [SerializeField] private List<Group> _groups = new List<Group>();
+        [SerializeField] private int _maxGroups = 10;
         private Dictionary<int, Group> _groupsById = new Dictionary<int, Group>();
 
         public IReadOnlyList<Group> AllGroups => _groups;
+        public int MaxGroups => _maxGroups;
+        public bool CanCreateGroup() => _groups.Count < _maxGroups;
+
+        public int? GetNextFreeGroupId()
+        {
+            if (!CanCreateGroup())
+                return null;
+
+            bool[] usedIds = new bool[_maxGroups];
+            foreach (Group g in _groups)
+            {
+                if (g != null && g.Id >= 0 && g.Id < _maxGroups)
+                    usedIds[g.Id] = true;
+            }
+
+            for (int id = 0; id < _maxGroups; id++)
+            {
+                if (!usedIds[id])
+                    return id;
+            }
+
+            return null;
+        }
+
+        public void SetMaxGroups(int maxGroups)
+        {
+            _maxGroups = Mathf.Max(0, maxGroups);
+        }
 
         private void Awake()
         {
@@ -53,6 +82,11 @@ namespace Biocrowds.Core
         {
             if (id < 0) return null;
             if (_groupsById.ContainsKey(id)) return _groupsById[id];
+            if (_groups.Count >= _maxGroups)
+            {
+                Debug.LogWarning($"[GroupManager] não é possível criar grupo {id}: limite de {_maxGroups} grupos alcançado.");
+                return null;
+            }
             Group g = new Group(id);
             _groupsById.Add(id, g);
 
@@ -70,6 +104,7 @@ namespace Biocrowds.Core
         {
             if (agent == null || groupId < 0) return;
             Group g = GetOrCreate(groupId);
+            if (g == null) return;
             g.AddAgent(agent);
         }
 
@@ -112,12 +147,14 @@ namespace Biocrowds.Core
         public void SetLeader(int groupId, Agent leader)
         {
             Group g = GetOrCreate(groupId);
+            if (g == null) return;
             g.Leader = leader;
         }
 
         public void SetGoals(int groupId, List<GameObject> goals, List<float> waits)
         {
             Group g = GetOrCreate(groupId);
+            if (g == null) return;
             g.GoalsList = goals;
             g.GoalsWaitList = waits;
         }

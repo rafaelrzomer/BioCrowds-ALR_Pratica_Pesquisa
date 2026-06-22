@@ -35,7 +35,9 @@ namespace Biocrowds.Core
         [SerializeField] private float GOAL_DISTANCE_THRESHOLD = 1.0f;
 
         // group interaction settings
+        [Header("Group Settings")]
         [SerializeField] private bool ALLOW_GROUP_CHANGES = true; // master switch for all group changes
+        [SerializeField] private int MAX_GROUPS = 10; // editable limit for total active groups
         [SerializeField] private float GROUP_PROXIMITY_DISTANCE = 15.0f; // detection radius for group interactions
         [SerializeField] private float GROUP_SWITCH_GRACE_PERIOD = 0.1f; // time after spawn before group changes are allowed
         [Range(0f, 1f)]
@@ -145,6 +147,8 @@ namespace Biocrowds.Core
             get { return _groupAffinityAverages; }
         }
 
+        public int MaxGroups => MAX_GROUPS;
+
         // group sizes: groupId -> number of members (updated each eval cycle)
         private Dictionary<int, int> _groupSizes = new Dictionary<int, int>();
         public int GetGroupSize(int gid)
@@ -186,6 +190,9 @@ namespace Biocrowds.Core
                 GameObject gmGO = new GameObject("GroupManager (auto)");
                 gmGO.AddComponent<GroupManager>();
             }
+
+            if (GroupManager.Instance != null)
+                GroupManager.Instance.SetMaxGroups(MAX_GROUPS);
 
             if (spawnAreas.Count == 0)
                 spawnAreas = FindObjectsOfType<SpawnArea>().ToList();
@@ -1049,20 +1056,33 @@ namespace Biocrowds.Core
                         if (affinityDifference <= AFFINITY_SWITCH_THRESHOLD)
                         {
                             // they should form a new group together
-                            int newGroupId = _nextGroupId++;
+                        if (GroupManager.Instance == null)
+                        {
+                            if (DEBUG_LOG_GROUP_CHANGES)
+                                Debug.LogWarning("[World] GroupManager ausente; não é possível formar novo grupo.");
+                            continue;
+                        }
 
-                            // Elege líder ANTES de SwitchGroup — GetGroupLeader precisa encontrá-lo
-                            Agent newLeader   = agent1.dominance >= agent2.dominance ? agent1 : agent2;
-                            Agent newFollower = newLeader == agent1 ? agent2 : agent1;
+                        int? newGroupId = GroupManager.Instance.GetNextFreeGroupId();
+                        if (!newGroupId.HasValue)
+                        {
+                            if (DEBUG_LOG_GROUP_CHANGES)
+                                Debug.LogWarning("[World] limite de grupos atingido; não é possível formar novo grupo.");
+                            continue;
+                        }
 
-                            newLeader.groupId       = newGroupId;
-                            newLeader.isGroupLeader = true;
-                            newLeader.ApplyGroupColor(); // registra a cor antes que o follower a busque
+                        // Elege líder ANTES de SwitchGroup — GetGroupLeader precisa encontrá-lo
+                        Agent newLeader   = agent1.dominance >= agent2.dominance ? agent1 : agent2;
+                        Agent newFollower = newLeader == agent1 ? agent2 : agent1;
 
-                            newFollower.SwitchGroup(newGroupId); // copia goals do líder corretamente
-                            _newGroupsThisCycle++;
-                    
-                            break; // agent1 paired; move to next i
+                        newLeader.groupId       = newGroupId.Value;
+                        newLeader.isGroupLeader = true;
+                        newLeader.ApplyGroupColor(); // registra a cor antes que o follower a busque
+
+                        newFollower.SwitchGroup(newGroupId.Value); // copia goals do líder corretamente
+                        _newGroupsThisCycle++;
+
+                        break; // agent1 paired; move to next i
                         }
                     }
                 }
