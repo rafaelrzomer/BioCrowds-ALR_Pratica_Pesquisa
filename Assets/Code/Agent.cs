@@ -65,6 +65,7 @@ namespace Biocrowds.Core
         public int CurrentGoalIndex => goalIndex; // public getter to access current goal index
         public bool removeWhenGoalReached;
 
+        public bool loopGoals;
         public float goalDistThreshold = 30.0f;
 
         //list with all auxins in his personal space
@@ -307,7 +308,7 @@ namespace Biocrowds.Core
 
         private void CheckIfAtGoal()
         {
-            if (IsAtCurrentGoal() && goalIndex < goalsList.Count - 1)
+            if (IsAtCurrentGoal())
             {
                 if (goalsWaitList[goalIndex] >= 0.1f)
                 {
@@ -316,9 +317,20 @@ namespace Biocrowds.Core
                 }
                 else
                 {
-                    waitCount = 0.0f;
-                    goalIndex++;
-                    UpdateGoalPositionAndNavmesh();
+                    // Chegou no objetivo, decide o que fazer
+                    if (goalIndex < goalsList.Count - 1)
+                    {
+                        // Avança para o próximo goal
+                        goalIndex++;
+                        UpdateGoalPositionAndNavmesh();
+                    }
+                    else if (loopGoals)
+                    {
+                        // Último goal e loop está ativo: volta para o início
+                        goalIndex = 0;
+                        isWaiting = false; // Garante que não vai esperar no primeiro goal
+                        UpdateGoalPositionAndNavmesh();
+                    }
                 }
             }
         }

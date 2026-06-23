@@ -574,6 +574,7 @@ namespace Biocrowds.Core
             newAgent.Goal = _goalList[0];  //agent goal
             newAgent.goalsList = _goalList;
             newAgent.removeWhenGoalReached = _removeWhenGoalReached;
+            newAgent.loopGoals = false; // Comportamento legado para spawn direto
             // sem SpawnArea: agente nasce solo com personalidade randomizada
             // (alinhado a SpawnNewAgentInArea, que define esses campos pós-Instantiate).
             newAgent.groupId = -1;
@@ -598,6 +599,7 @@ namespace Biocrowds.Core
                 newAgent.Goal = _area.initialAgentsGoalList[0];  //agent goal
                 newAgent.goalsList = new List<GameObject>(_area.initialAgentsGoalList);
                 newAgent.removeWhenGoalReached = _area.initialRemoveWhenGoalReached;
+                newAgent.loopGoals = _area.initialLoopGoals;
                 newAgent.goalsWaitList = new List<float>(_area.initialWaitList);
             }
             else
@@ -605,6 +607,7 @@ namespace Biocrowds.Core
                 newAgent.Goal = _area.repeatingGoalList[0];  //agent goal
                 newAgent.goalsList = new List<GameObject>(_area.repeatingGoalList);
                 newAgent.removeWhenGoalReached = _area.repeatingRemoveWhenGoalReached;
+                newAgent.loopGoals = _area.repeatingLoopGoals;
                 newAgent.goalsWaitList = new List<float>(_area.repeatingWaitList);
             }
             newAgent.groupId = _area.groupId;

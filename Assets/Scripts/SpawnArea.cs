@@ -21,6 +21,7 @@ public class SpawnArea : MonoBehaviour
     [Header("Initial Spawner Settings")]
     public int initialNumberOfAgents;
     public bool initialRemoveWhenGoalReached;
+    public bool initialLoopGoals = false;
     public List<GameObject> initialAgentsGoalList;
     public List<float> initialWaitList;
 
@@ -28,6 +29,7 @@ public class SpawnArea : MonoBehaviour
     public float cycleLenght = 1.0f;
     public int quantitySpawnedEachCycle;
     public bool repeatingRemoveWhenGoalReached;
+    public bool repeatingLoopGoals = false;
     public List<GameObject> repeatingGoalList;
     public List<float> repeatingWaitList;
     private float cycleCounter = 0.0f;
