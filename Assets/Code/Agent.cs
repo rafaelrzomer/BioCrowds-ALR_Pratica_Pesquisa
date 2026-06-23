@@ -298,8 +298,19 @@ namespace Biocrowds.Core
                 if (waitCount >= goalsWaitList[goalIndex] * mult)
                 {
                     isWaiting = false;
-                    goalIndex++;
-                    UpdateGoalPositionAndNavmesh();
+                    // Após esperar, decidir para onde ir
+                    if (goalIndex < goalsList.Count - 1)
+                    {
+                        // Ainda há objetivos na lista, avança para o próximo
+                        goalIndex++;
+                        UpdateGoalPositionAndNavmesh();
+                    }
+                    else if (loopGoals)
+                    {
+                        // Este era o último objetivo e o loop está ativo, volta para o início
+                        goalIndex = 0;
+                        UpdateGoalPositionAndNavmesh();
+                    }
                 }
             }
             else 

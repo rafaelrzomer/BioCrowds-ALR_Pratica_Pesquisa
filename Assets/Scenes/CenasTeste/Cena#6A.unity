@@ -684,6 +684,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _groups: []
+  _maxGroups: 10
 --- !u!4 &197764021
 Transform:
   m_ObjectHideFlags: 0
@@ -5300,7 +5301,7 @@ PrefabInstance:
     - target: {fileID: 114285194632179770, guid: 3d322bc9d9d73524b9a1ca068bbf97c7,
         type: 3}
       propertyPath: SIMULATION_TIME_STEP
-      value: 0.02
+      value: 0.05
       objectReference: {fileID: 0}
     - target: {fileID: 114285194632179770, guid: 3d322bc9d9d73524b9a1ca068bbf97c7,
         type: 3}
@@ -5315,7 +5316,7 @@ PrefabInstance:
     - target: {fileID: 114285194632179770, guid: 3d322bc9d9d73524b9a1ca068bbf97c7,
         type: 3}
       propertyPath: GROUP_SWITCH_GRACE_PERIOD
-      value: 0.1
+      value: 10
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 3d322bc9d9d73524b9a1ca068bbf97c7, type: 3}

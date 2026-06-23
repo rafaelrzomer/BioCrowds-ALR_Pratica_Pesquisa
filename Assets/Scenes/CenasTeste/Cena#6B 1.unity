@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.47471422, g: 0.6687925, b: 0.8898562, a: 1}
+  m_IndirectSpecularColor: {r: 0.46616268, g: 0.66575253, b: 0.89296496, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -242,7 +242,7 @@ PrefabInstance:
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: initialNumberOfAgents
-      value: 10
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
@@ -406,7 +406,7 @@ PrefabInstance:
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: initialNumberOfAgents
-      value: 10
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
@@ -684,6 +684,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _groups: []
+  _maxGroups: 10
 --- !u!4 &197764021
 Transform:
   m_ObjectHideFlags: 0
@@ -5300,7 +5301,7 @@ PrefabInstance:
     - target: {fileID: 114285194632179770, guid: 3d322bc9d9d73524b9a1ca068bbf97c7,
         type: 3}
       propertyPath: SIMULATION_TIME_STEP
-      value: 0.03
+      value: 0.05
       objectReference: {fileID: 0}
     - target: {fileID: 114285194632179770, guid: 3d322bc9d9d73524b9a1ca068bbf97c7,
         type: 3}
@@ -5315,7 +5316,7 @@ PrefabInstance:
     - target: {fileID: 114285194632179770, guid: 3d322bc9d9d73524b9a1ca068bbf97c7,
         type: 3}
       propertyPath: GROUP_SWITCH_GRACE_PERIOD
-      value: 0.1
+      value: 10
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 3d322bc9d9d73524b9a1ca068bbf97c7, type: 3}
