@@ -12,6 +12,7 @@ Resumo por release. **Detalhes completos em [`CHANGELOG.md`](CHANGELOG.md).** Ta
 
 | Tag | Data | Resumo | Commit |
 |---|---|---|---|
+| `v0.10.0` | 23/06/2026 | Métricas: snapshot público + **HUD runtime** (`MetricsHUD`, tecla `M`); CSV na raiz (`Metrics/`); seed reproduzível; métrica **tempo médio em grupo**; flag `ALLOW_GROUP_CHANGES` no CSV/HUD; script Python de gráficos (`tools/plot_metrics.py`). Correções de movimento: NRE do NavMesh, afundamento no chão (lock XZ), flicker (RNG por-frame removido). | _pendente_ |
 | `v0.9.0` | 28/05/2026 | Diamante 3D como marcador do líder; remoção de brilho/escala do corpo; `SpawnNewAgent` legado alinhado. | _pendente_ |
 | `v0.8.0` | 28/05/2026 | `Debug.Break` removido; grupos ordenados no Inspector; remoção segura de agentes; marcador do líder configurável. | `400b8b9` |
 | `v0.7.0` | 22/05/2026 | `Group` + `GroupManager`; sync de goals; tenure de líder; affinity por `SpawnArea`; diamante; tecla `G`. | `7a3b226` |
@@ -52,6 +53,8 @@ Assets/
 │   ├── SpawnArea.cs             # Área de spawn com groupId + affinityMin/Max
 │   ├── SimulationConfiguration.cs
 │   ├── GroupColorManager.cs     # Singleton de cores por grupo
+│   ├── MetricsLogger.cs         # Grava CSV (groups + summary) na raiz do projeto
+│   ├── MetricsHUD.cs            # HUD runtime (OnGUI, tecla M)
 │   └── MarkerSpawn/
 │       ├── MarkerSpawner.cs
 │       ├── RegularGridMarkerSpawner.cs
@@ -59,6 +62,9 @@ Assets/
 ├── Visualization/Scripts/VisualAgent.cs  # Cor, brilho do líder, diamante
 ├── Prefabs/Agents/
 └── Scenes/                      # Cena do museu
+
+tools/
+└── plot_metrics.py             # Gera gráficos (PNG) dos CSVs de métricas (pandas+matplotlib)
 ```
 
 ---
@@ -71,6 +77,7 @@ Assets/
 | `R` | Recarrega a cena ativa |
 | `2` | Debug `SpawnArea` (loga ponto aleatório) |
 | `G` | `GroupManager.DumpToLog()` — loga grupos, líderes e membros no Console |
+| `M` | Liga/desliga a **HUD de métricas** (`MetricsHUD`) |
 
 A **Game View** precisa ter foco do teclado.
 
@@ -160,7 +167,7 @@ Histórico detalhado por release em [`CHANGELOG.md`](CHANGELOG.md). Resumo das v
 | Status | Item | Notas |
 |:---:|---|---|
 | ⏳ | Definição e montagem do **cenário complexo** | 10ª reunião (11/06/2026). Cenário de demonstração que evidencie evolução de grupos por afinidade. Base para os experimentos do artigo. |
-| ✅ | Exportação de dados (CSV) | `MetricsLogger.cs` grava dois CSVs por run em `persistentDataPath/Metrics/`: **groups** (time, groupId, groupSize, coesão ao centróide, afinidade média, desvio-padrão de afinidade) e **summary** (time, nº de agentes/grupos/solos, trocas por intervalo e acumuladas). Amostra a cada eval cycle de grupo. |
+| ✅ | Exportação de dados (CSV) | `MetricsLogger.cs` grava dois CSVs por run em `Metrics/` na **raiz do projeto** (no Editor; em build cai na pasta do executável): **groups** (time, groupId, groupSize, coesão ao centróide, afinidade média, desvio-padrão de afinidade) e **summary** (time, nº de agentes/grupos/solos, trocas por intervalo e acumuladas). Amostra a cada eval cycle de grupo. Pasta `Metrics/` ignorada pelo git. |
  
 ### 📝 Artigo (10ª reunião — 11/06/2026)
 
@@ -181,14 +188,15 @@ Histórico detalhado por release em [`CHANGELOG.md`](CHANGELOG.md). Resumo das v
 
 | Status | Item | Notas |
 |:---:|---|---|
-| 📊 | Cenários múltiplos para experimentos | Duplicar a cena do museu com variações controladas: poucos vs. muitos agentes, afinidades polarizadas vs. uniformes, layout aberto vs. corredor. Gravar vídeo e anotar métricas. Inclui o **cenário complexo** da 10ª reunião. |
-| 📊 | Métricas para os experimentos | **Coesão de grupo:** distância média ao centróide do grupo. **Trocas de grupo** por intervalo. **Tamanho dos grupos** ao longo da simulação. **Coesão entre grupos** (10ª reunião). |
-| 📊 | Sociograma | Reproduzir o sociograma do trabalho original (Musse & Thalmann) para os resultados do artigo. |
-| 📊 | HUD runtime de métricas | Painel ao vivo, separado do Console / Inspector. |
+| 🚧 | Cenários múltiplos para experimentos | Cenas `Cena#6A`/`Cena#6B`/`Sociograma` já criadas em `Assets/Scenes/CenasTeste/`. Falta variar parâmetros de forma controlada (poucos vs. muitos agentes, afinidades polarizadas vs. uniformes, layout aberto vs. corredor), gravar vídeo e anotar métricas. Inclui o **cenário complexo** da 10ª reunião. **Adicionar `MetricsLogger` a cada cena.** |
+| ✅ | Métricas para os experimentos | Implementadas no `MetricsLogger.cs`: **coesão de grupo** (distância média ao centróide), **trocas de grupo** (intervalo + acumuladas), **tamanho dos grupos**, **nº de grupos/solos**, **desvio-padrão de afinidade** (proxy de coesão social), **tempo médio em grupo** (`timeInGroup` por agente, agregado por grupo) e a flag **`ALLOW_GROUP_CHANGES`** (0/1) no summary. |
+| ✅ | Gráficos a partir dos CSVs | `tools/plot_metrics.py` (pandas+matplotlib): localiza o run mais recente em `Metrics/`, gera PNGs (população, trocas, coesão/afinidade/tamanho/tempo por grupo) em `Metrics/plots/<run>/`. Uso: `python tools/plot_metrics.py`. |
+| 🚧 | Sociograma | Cena `Sociograma.unity` criada (merge da `main`). Falta reproduzir o sociograma do trabalho original (Musse & Thalmann) para os resultados do artigo. |
+| ✅ | HUD runtime de métricas | `MetricsHUD.cs` (OnGUI, tecla `M`): painel ao vivo lendo o snapshot público do `World` (tempo, nº de agentes/grupos/solos, trocas total+ciclo, e por grupo tamanho/coesão/afinidade±desvio). Atualiza a cada eval cycle, independente do CSV. |
 | 📊 | Bateria de testes de variação | Caderno 14/05/2026 — *"dois grupos com muita afinidade e dois grupos com afinidades muito distantes, testar variação de comportamentos"*. |
 | 📊 | Métricas inspiradas em WebCrowds | Density Map, Trajectories Map, Simulation Time. |
 | 📊 | Interface runtime para ditar grupos e comportamentos | Caderno 01/04/2026. Painel no Play exibindo/editando `groupId`, `affinity`, `dominance`, `isGroupLeader`. |
-| 📊 | Seed reproduzível | Substituir `Random.Range` por RNG inicializado em `World` com seed no Inspector — pré-requisito para comparar runs. |
+| ✅ | Seed reproduzível | `World` expõe `USE_SEED` + `RANDOM_SEED` no Inspector; `Awake` chama `Random.InitState(RANDOM_SEED)` antes de qualquer spawn. Como `UnityEngine.Random` é global, fixa toda a população inicial (afinidade, dominância, posições de marcadores). Pré-requisito para comparar runs. |
 |  | Estrutura do trabalho/apresentação final | 8ª reunião: Introdução → Trabalhos relacionados → Modelo (o que foi adicionado, parâmetros novos, resultados) → Métricas dos experimentos. Detalhamento do artigo na seção **Artigo** acima. |
 | 📊 | Migrar `Update` → `FixedUpdate` | Desacopla simulação do frame de render. Afeta toda a malha de chamadas — **adiado**: alto risco, precisa de sessão dedicada com teste runtime. |
 | 📊 | Spatial grid via `CurrentCell ± 1` | Acelera `FindNearbyGroupMembers` e proximidade entre grupos. **Adiado**: só vale para multidões grandes; mantém O(N²) simples por ora. |
@@ -199,7 +207,7 @@ Histórico detalhado por release em [`CHANGELOG.md`](CHANGELOG.md). Resumo das v
 |:---:|---|---|
 | 🔬 | Pontos de densidade e caminhos preferenciais | Caderno 01/04/2026 — *"Pontos de densidade, caminhos específicos (caminhos futuros)"*. Identificar gargalos no cenário do museu. |
 | 🔬 | Aplicação a eventos culturais / museus | Caderno 01/04/2026 — objetivo aplicado. `SpawnAreas` e `Goals` como salas/corredores/saídas; evitar aglomerações e preservar liberdade de movimento. |
-| 🔬 | Comparação quantitativa `ALLOW_GROUP_CHANGES` on/off | Validar empiricamente o impacto da dinâmica de grupo. |
+| 🔬 | Comparação quantitativa `ALLOW_GROUP_CHANGES` on/off | Validar empiricamente o impacto da dinâmica de grupo. Estado já gravado no CSV summary (coluna `groupChangesEnabled`) e exibido na HUD — falta rodar e comparar as duas baterias. |
 | 🔬 | Otimização O(N²) → O(N log N) | Loops de proximidade via grid espacial ou KD-tree (relacionado ao ponto de frame rate). |
 | 🔬 | `POISSON_DISK_SAMPLING` spawner | Enum em `SimulationConfiguration.cs` declarado, mas sem classe concreta. |
 | 🔬 | Personalidade OCEAN (Knob et al.) | Adicionar `openness, conscientiousness, extraversion, agreeableness, neuroticism` ao `Agent`. Modular o peso $w_k$ por Extraversion: $w'_{k,i} = \delta_i \cdot w_{k,i} \cdot E_i + (1 - \delta_i) \cdot (1 - E_i)$. |

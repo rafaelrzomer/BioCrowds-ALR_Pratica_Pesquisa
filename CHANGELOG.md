@@ -8,6 +8,30 @@ Convenções: `valor antigo ⇒ valor novo` para ajustes numéricos. 🆕 novo �
 
 ---
 
+## Patch v0.10.0 — 23/06/2026 · _pendente de tag_
+
+### Métricas
+- 🆕 `MetricsHUD.cs` (OnGUI): HUD runtime no canto da tela. Tecla `M` liga/desliga. Sem Canvas/prefab — basta o componente num GameObject da cena.
+- 🆕 Snapshot público em `World`: struct `GroupMetric` + `MetricGroups` (lista read-only) + properties `MetricTime / MetricNumAgents / MetricNumGroups / MetricNumSolo / MetricSwitchesInterval / MetricTotalSwitches`.
+- 🔧 `World.RecordMetrics` monta o snapshot **sempre** (alimenta a HUD); escrita no CSV passa a ser condicionada a `LOG_METRICS`. HUD funciona mesmo com logging desligado.
+- 🔧 `MetricsLogger`: saída dos CSVs `persistentDataPath/Metrics/ ⇒ raiz do projeto /Metrics/` (via `Directory.GetParent(Application.dataPath)`). No Editor cai dentro do repo; em build, pasta do executável.
+- 🆕 `.gitignore`: `/[Mm]etrics/` — CSVs gerados não vão para o git.
+- 🆕 Métrica **tempo médio em grupo**: `Agent.timeInGroup` (incrementado em `World.Update` quando `HasGroup`, zerado em `SwitchGroup` e ao formar grupo novo). Agregado por grupo em `RecordMetrics` → coluna `meanTimeInGroup` no `*_groups.csv` + linha por grupo na HUD.
+- 🆕 Flag **`ALLOW_GROUP_CHANGES`** exposta (`World.GroupChangesAllowed`): coluna `groupChangesEnabled` (0/1) no `*_summary.csv` + estado ON/OFF na HUD.
+- 🆕 `tools/plot_metrics.py` (pandas+matplotlib): gera PNGs do run mais recente em `Metrics/plots/<run>/` (população, trocas, coesão/afinidade/tamanho/tempo por grupo).
+
+> ℹ️ Setup da HUD: adicionar o componente `MetricsHUD` a um GameObject da `Museu.unity` (campo `_world` via Inspector ou auto-find).
+
+### Reprodutibilidade
+- 🆕 Seed reproduzível: `World` expõe `USE_SEED` + `RANDOM_SEED`; `Awake` chama `Random.InitState(RANDOM_SEED)` antes de qualquer spawn. Fixa toda a população inicial (afinidade, dominância, posições de marcadores).
+
+### Correções de movimento (pré-existentes, herdadas da `main`)
+- 🐛 NRE no NavMesh: agentes spawnados durante a run tinham `NavmeshStep` chamado no mesmo frame, antes do `Start()` inicializar `_navMeshPath` → `NullReferenceException` em `NavMesh.CalculatePath`. Corrigido com lazy-init de `_navMeshPath` + guardas de goal null/vazio em `UpdateGoalPositionAndNavmesh`.
+- 🐛 Agentes afundavam no chão: `transform.Translate` aplicava o componente Y do movimento (vetores de auxina/avoidance) sem clamp; em alta densidade virava feedback vertical. `CalculateVelocity` agora zera `_rotation.y` → movimento travado no plano XZ.
+- 🐛 Flicker ("agentes pulando"): removido `Random.Range` **por-frame/por-auxina** em `GetF` (re-sorteava pesos todo frame → direção tremia; entrava normalizado, era ruído puro). O ruído de velocidade em `CalculateVelocity` virou `_speedNoise`, amostrado **uma vez** no `Start` (mantém variação entre agentes, sem tremor). Bônus: menos RNG por-frame = runs com seed mais determinísticas.
+
+---
+
 ## Patch v0.9.0 — 28/05/2026 · 9ª reunião · _pendente de tag_
 
 ### Líder

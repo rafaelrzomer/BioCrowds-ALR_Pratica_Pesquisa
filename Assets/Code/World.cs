@@ -17,6 +17,13 @@ namespace Biocrowds.Core
 {
     public class World : MonoBehaviour
     {
+        [Header("Reproducibility")]
+        // Quando ligado, fixa a seed do gerador pseudo-aleatório global (UnityEngine.Random)
+        // em Awake, antes de qualquer spawn. Mesma seed + mesmos parametros => mesma populacao
+        // inicial (afinidades, dominancia, posicoes de marcadores). Pre-requisito para comparar runs.
+        [SerializeField] private bool USE_SEED = false;
+        [SerializeField] private int RANDOM_SEED = 0;
+
         [Header("Simulation Configuration")]
         public SimulationConfiguration.MarkerSpawnMethod markerSpawnMethod;
 
@@ -157,6 +164,32 @@ namespace Biocrowds.Core
             return _groupSizes.TryGetValue(gid, out n) ? n : 0;
         }
 
+        // --- Live metrics snapshot (read by the runtime HUD) ---
+        // Populated each eval cycle in RecordMetrics, independent of CSV logging.
+        public struct GroupMetric
+        {
+            public int groupId;
+            public int size;
+            public float cohesion;        // mean distance to centroid (XZ)
+            public float meanAffinity;
+            public float affinityStdDev;
+            public float meanTimeInGroup; // mean seconds members have spent in this group
+        }
+
+        private readonly List<GroupMetric> _metricGroups = new List<GroupMetric>();
+
+        /// <summary>Per-group metrics from the last eval cycle (read-only view for the HUD).</summary>
+        public IReadOnlyList<GroupMetric> MetricGroups => _metricGroups;
+        public float MetricTime { get; private set; }
+        public int MetricNumAgents { get; private set; }
+        public int MetricNumGroups { get; private set; }
+        public int MetricNumSolo { get; private set; }
+        public int MetricSwitchesInterval { get; private set; }
+        public int MetricTotalSwitches { get; private set; }
+
+        /// <summary>Estado do master switch das dinâmicas de grupo (lido pela HUD e gravado no CSV).</summary>
+        public bool GroupChangesAllowed => ALLOW_GROUP_CHANGES;
+
         /// <summary>
         /// Finds and returns the leader agent of the specified group
         /// </summary>
@@ -180,6 +213,13 @@ namespace Biocrowds.Core
 
         private void Awake()
         {
+            // Fixa a seed antes de qualquer Random.Range/Random.value da simulacao.
+            if (USE_SEED)
+            {
+                Random.InitState(RANDOM_SEED);
+                Debug.Log("[World] RNG seed fixada em " + RANDOM_SEED + " (runs reproduziveis).");
+            }
+
             _newAgentID = 0;
             _nextGroupId = 0;
 
@@ -447,7 +487,11 @@ namespace Biocrowds.Core
 
             // update agent age before group evaluation
             for (int i = 0; i < _agents.Count; i++)
+            {
                 _agents[i].timeSinceSpawn += SIMULATION_TIME_STEP;
+                if (_agents[i].HasGroup)
+                    _agents[i].timeInGroup += SIMULATION_TIME_STEP;
+            }
 
             //find nearest auxins for each agent
             for (int i = 0; i < _agents.Count; i++)
@@ -838,9 +882,13 @@ namespace Biocrowds.Core
         /// </summary>
         private void RecordMetrics()
         {
-            if (_metricsLogger == null || !_metricsLogger.LoggingEnabled || _groupsScratch == null)
+            if (_groupsScratch == null)
                 return;
 
+            // Snapshot é sempre montado (alimenta a HUD); CSV só quando o logger está ligado.
+            bool logCsv = _metricsLogger != null && _metricsLogger.LoggingEnabled;
+
+            _metricGroups.Clear();
             int numGroups = _groupsScratch.Count;
 
             foreach (var group in _groupsScratch)
@@ -854,11 +902,13 @@ namespace Biocrowds.Core
                 Vector3 centroid = Vector3.zero;
                 float affSum = 0f;
                 float affSqSum = 0f;
+                float timeInGroupSum = 0f;
                 foreach (Agent a in members)
                 {
                     centroid += a.transform.position;
                     affSum += a.affinity;
                     affSqSum += a.affinity * a.affinity;
+                    timeInGroupSum += a.timeInGroup;
                 }
                 centroid /= count;
 
@@ -877,7 +927,20 @@ namespace Biocrowds.Core
                 float variance = Mathf.Max(0f, (affSqSum / count) - (meanAff * meanAff));
                 float affStdDev = Mathf.Sqrt(variance);
 
-                _metricsLogger.WriteGroupSample(_simTime, group.Key, count, cohesion, meanAff, affStdDev);
+                float meanTimeInGroup = timeInGroupSum / count;
+
+                _metricGroups.Add(new GroupMetric
+                {
+                    groupId = group.Key,
+                    size = count,
+                    cohesion = cohesion,
+                    meanAffinity = meanAff,
+                    affinityStdDev = affStdDev,
+                    meanTimeInGroup = meanTimeInGroup
+                });
+
+                if (logCsv)
+                    _metricsLogger.WriteGroupSample(_simTime, group.Key, count, cohesion, meanAff, affStdDev, meanTimeInGroup);
             }
 
             int numSolo = 0;
@@ -887,7 +950,16 @@ namespace Biocrowds.Core
                     numSolo++;
             }
 
-            _metricsLogger.WriteSummarySample(_simTime, _agents.Count, numGroups, numSolo, _switchesThisCycle, _totalSwitches);
+            // publica o snapshot lido pela HUD
+            MetricTime = _simTime;
+            MetricNumAgents = _agents.Count;
+            MetricNumGroups = numGroups;
+            MetricNumSolo = numSolo;
+            MetricSwitchesInterval = _switchesThisCycle;
+            MetricTotalSwitches = _totalSwitches;
+
+            if (logCsv)
+                _metricsLogger.WriteSummarySample(_simTime, _agents.Count, numGroups, numSolo, _switchesThisCycle, _totalSwitches, ALLOW_GROUP_CHANGES);
         }
 
         private void EvaluateGroupProximityAndSwitches()
@@ -1077,6 +1149,7 @@ namespace Biocrowds.Core
 
                         newLeader.groupId       = newGroupId.Value;
                         newLeader.isGroupLeader = true;
+                        newLeader.timeInGroup   = 0f; // grupo novo: zera contador (não passa por SwitchGroup)
                         newLeader.ApplyGroupColor(); // registra a cor antes que o follower a busque
 
                         newFollower.SwitchGroup(newGroupId.Value); // copia goals do líder corretamente
