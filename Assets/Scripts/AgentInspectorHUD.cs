@@ -25,7 +25,11 @@ public class AgentInspectorHUD : MonoBehaviour
     [Tooltip("Altura (m) somada à posição do agente para mirar a cabeça na seleção.")]
     [SerializeField] private float _aimHeight = 1.0f;
 
+    [Tooltip("Offset da câmera ao seguir o agente selecionado (mundo).")]
+    [SerializeField] private Vector3 _camOffset = new Vector3(0f, 14f, -10f);
+
     private Agent _selected;
+    private bool _followCam = false;
     private Rect _windowRect = new Rect(20, 120, 300, 0);
     private GUIStyle _hintStyle;
 
@@ -115,8 +119,12 @@ public class AgentInspectorHUD : MonoBehaviour
         if (a == null) { GUILayout.Label("—"); GUI.DragWindow(); return; }
 
         GUILayout.Label($"<b>{a.name}</b>", _hintStyle);
-        GUILayout.Label($"groupId: {a.groupId}   {(a.HasGroup ? "(em grupo)" : "(solo)")}");
+        GUILayout.Label($"groupId: {a.groupId}   {(a.HasGroup ? "(em grupo)" : "(solo)")}   {(a.isGroupLeader ? "★ líder" : "")}");
         GUILayout.Label($"timeInGroup: {a.timeInGroup:F1}s   |v|: {a._velocity.magnitude:F2}");
+        int goalN = a.goalsList != null ? a.goalsList.Count : 0;
+        GUILayout.Label($"goal: {a.CurrentGoalIndex + 1}/{goalN}   {(a.isWaiting ? "esperando" : "andando")}");
+        int nearby = a._nearbyGroupMembers != null ? a._nearbyGroupMembers.Count : 0;
+        GUILayout.Label($"vizinhos do grupo: {nearby}   idade: {a.timeSinceSpawn:F1}s");
 
         GUILayout.Space(6);
 
@@ -153,9 +161,19 @@ public class AgentInspectorHUD : MonoBehaviour
         }
 
         GUILayout.Space(6);
+        _followCam = GUILayout.Toggle(_followCam, " câmera segue o agente");
         if (GUILayout.Button("Fechar")) _selected = null;
 
         GUI.DragWindow();
+    }
+
+    private void LateUpdate()
+    {
+        if (!_followCam || _selected == null) return;
+        Camera cam = Camera.main;
+        if (cam == null) return;
+        cam.transform.position = _selected.transform.position + _camOffset;
+        cam.transform.LookAt(_selected.transform.position);
     }
 
     private void ChangeGroup(Agent a, int newGroupId)

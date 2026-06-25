@@ -15,6 +15,11 @@ python tools\plot_metrics.py
 if errorlevel 1 goto erro
 
 echo.
+echo == Gerando mapas de trajetoria e densidade ==
+python tools\plot_trajectories.py
+if errorlevel 1 goto erro
+
+echo.
 echo Concluido. Veja a pasta Metrics\<run-mais-recente>\
 pause
 exit /b 0

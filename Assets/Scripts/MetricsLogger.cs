@@ -26,6 +26,8 @@ public class MetricsLogger : MonoBehaviour
     [SerializeField] private string FILE_NAME_PREFIX = "biocrowds_metrics";
     [Tooltip("Também grava cópias *_excel.csv no formato pt-BR (; e ,) para abrir no Excel com duplo-clique.")]
     [SerializeField] private bool WRITE_EXCEL_COPY = true;
+    [Tooltip("Grava positions.csv (time,agentId,x,z,groupId) para mapas de trajetória/densidade.")]
+    [SerializeField] private bool LOG_POSITIONS = true;
 
     // writers do formato padrão (, e .)
     private StreamWriter _groupsWriter;
@@ -33,6 +35,7 @@ public class MetricsLogger : MonoBehaviour
     // writers do formato pt-BR (; e ,) — só se WRITE_EXCEL_COPY
     private StreamWriter _groupsWriterXl;
     private StreamWriter _summaryWriterXl;
+    private StreamWriter _positionsWriter;
     private string _runDir;
     private bool _open;
 
@@ -76,6 +79,12 @@ public class MetricsLogger : MonoBehaviour
             _summaryWriterXl.WriteLine(ToExcel(summaryHeader));
         }
 
+        if (LOG_POSITIONS)
+        {
+            _positionsWriter = new StreamWriter(Path.Combine(runDir, "positions.csv"), false);
+            _positionsWriter.WriteLine("time,agentId,x,z,groupId");
+        }
+
         _open = true;
 
         Debug.Log($"[Metrics] run dir:\n  {runDir}");
@@ -99,6 +108,14 @@ public class MetricsLogger : MonoBehaviour
             "{0:F3},{1},{2},{3},{4},{5},{6},{7}",
             time, numAgents, numGroups, numSolo, switchesInterval, totalSwitches, groupChangesEnabled ? 1 : 0, numStuck);
         WriteBoth(_summaryWriter, _summaryWriterXl, line);
+    }
+
+    /// <summary>Escreve uma amostra de posição de um agente (para trajetória/densidade).</summary>
+    public void WritePositionSample(float time, int agentId, float x, float z, int groupId)
+    {
+        if (_positionsWriter == null) return;
+        _positionsWriter.WriteLine(string.Format(CultureInfo.InvariantCulture,
+            "{0:F3},{1},{2:F3},{3:F3},{4}", time, agentId, x, z, groupId));
     }
 
     /// <summary>
@@ -140,6 +157,7 @@ public class MetricsLogger : MonoBehaviour
         CloseWriter(ref _summaryWriter);
         CloseWriter(ref _groupsWriterXl);
         CloseWriter(ref _summaryWriterXl);
+        CloseWriter(ref _positionsWriter);
 
         _open = false;
     }

@@ -191,6 +191,12 @@ namespace Biocrowds.Core
         // velocidade (m/s) abaixo da qual um agente que NÃO está esperando conta como travado (jam)
         [SerializeField] private float STUCK_SPEED_THRESHOLD = 0.05f;
 
+        // controle de tempo da simulação (lido/escrito pelo TimeController). A sim avança em
+        // passos fixos; SimSpeed = passos por frame (0.25..4), SimPaused congela.
+        public static bool SimPaused = false;
+        public static float SimSpeed = 1f;
+        private float _simAccumulator = 0f;
+
         /// <summary>Estado do master switch das dinâmicas de grupo (lido pela HUD e gravado no CSV).</summary>
         public bool GroupChangesAllowed => ALLOW_GROUP_CHANGES;
 
@@ -230,6 +236,11 @@ namespace Biocrowds.Core
                 Random.InitState(RANDOM_SEED);
                 Debug.Log("[World] RNG seed fixada em " + RANDOM_SEED + " (runs reproduziveis).");
             }
+
+            // reseta o controle de tempo (statics persistem entre Plays no Editor)
+            SimPaused = false;
+            SimSpeed = 1f;
+            _simAccumulator = 0f;
 
             _newAgentID = 0;
             _nextGroupId = 0;
@@ -470,10 +481,23 @@ namespace Biocrowds.Core
         // Update is called once per frame
         void Update()
         {
-            //TODO: Modificar de time-deltatime para fixed frame
-            if (!_isReady)
-                return;
+            if (!_isReady) return;
+            if (SimPaused) return;
 
+            // sim em passos fixos; SimSpeed controla quantos passos rodam por frame
+            // (fracionário < 1 = câmera lenta pulando frames; > 1 = avanço rápido).
+            _simAccumulator += SimSpeed;
+            int guard = 0;
+            while (_simAccumulator >= 1f && guard++ < 16)
+            {
+                _simAccumulator -= 1f;
+                StepSimulation();
+            }
+        }
+
+        /// <summary>Um passo fixo da simulação (SIMULATION_TIME_STEP). Antes era o corpo de Update().</summary>
+        private void StepSimulation()
+        {
             _simTime += SIMULATION_TIME_STEP;
 
             foreach (SpawnArea _area in spawnAreas)
@@ -546,6 +570,7 @@ namespace Biocrowds.Core
                 // métricas: usa _groupsScratch fresco (reconstruído em EvaluateSoloAgentsJoiningGroups)
                 _totalSwitches += _switchesThisCycle;
                 RecordMetrics();
+                RecordPositions();
 
                 if (DEBUG_LOG_GROUP_CHANGES && (_switchesThisCycle > 0 || _newGroupsThisCycle > 0 || _soloJoinsThisCycle > 0))
                 {
@@ -1009,6 +1034,18 @@ namespace Biocrowds.Core
 
             if (logCsv)
                 _metricsLogger.WriteSummarySample(_simTime, _agents.Count, numGroups, numSolo, _switchesThisCycle, _totalSwitches, ALLOW_GROUP_CHANGES, numStuck);
+        }
+
+        /// <summary>Loga a posição (XZ) de cada agente no positions.csv (trajetória/densidade).</summary>
+        private void RecordPositions()
+        {
+            if (_metricsLogger == null) return;
+            for (int i = 0; i < _agents.Count; i++)
+            {
+                Agent a = _agents[i];
+                Vector3 p = a.transform.position;
+                _metricsLogger.WritePositionSample(_simTime, a.GetInstanceID(), p.x, p.z, a.groupId);
+            }
         }
 
         private void EvaluateGroupProximityAndSwitches()

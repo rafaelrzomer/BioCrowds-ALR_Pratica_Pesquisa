@@ -56,6 +56,7 @@ Assets/
 │   ├── MetricsLogger.cs         # Grava CSV (groups + summary) na raiz do projeto
 │   ├── MetricsHUD.cs            # HUD runtime de métricas (OnGUI, tecla M)
 │   ├── AgentInspectorHUD.cs     # Inspetor por-agente: clique p/ ver/editar grupo e atributos (tecla I)
+│   ├── TimeController.cs        # Controle de tempo: pausa/acelera a sim (teclas P, [, ], \)
 │   └── MarkerSpawn/
 │       ├── MarkerSpawner.cs
 │       ├── RegularGridMarkerSpawner.cs
@@ -68,6 +69,7 @@ tools/
 ├── plot_metrics.py             # Gera gráficos (PNG) dos CSVs de métricas (pandas+matplotlib)
 ├── build_xlsx.py               # Gera relatório .xlsx (Excel) com gráficos nativos, tabelas e fórmulas (pandas+xlsxwriter)
 ├── compare_runs.py             # Sobrepõe uma métrica (ex.: numStuck, numGroups) de várias runs num gráfico
+├── plot_trajectories.py        # Mapa de trajetórias + mapa de densidade (heatmap) do positions.csv
 └── report.bat                  # Windows: duplo-clique → roda build_xlsx + plot_metrics no run mais recente
 ```
 
@@ -83,6 +85,9 @@ tools/
 | `G` | `GroupManager.DumpToLog()` — loga grupos, líderes e membros no Console |
 | `M` | Liga/desliga a **HUD de métricas** (`MetricsHUD`) |
 | `I` | Liga/desliga o **Inspetor de agente** (`AgentInspectorHUD`) — clique num agente para ver/editar `groupId`, `affinity`, `dominance`, `isGroupLeader` |
+| `P` | Pausa / retoma a simulação (`TimeController`) |
+| `[` / `]` | Diminui / aumenta a velocidade da simulação (0.25× … 4×) |
+| `\` | Volta a velocidade para 1× (normal) |
 
 A **Game View** precisa ter foco do teclado.
 
@@ -193,13 +198,14 @@ Histórico detalhado por release em [`CHANGELOG.md`](CHANGELOG.md). Resumo das v
 | 📊 | Estrutura do trabalho/apresentação final | 8ª reunião: Introdução → Trabalhos relacionados → Modelo (o que foi adicionado, parâmetros novos, resultados) → Métricas dos experimentos. Detalhamento do artigo na seção **Artigo** acima. |
 | 📊 | Spatial grid via `CurrentCell ± 1` | Acelera `FindNearbyGroupMembers` e proximidade entre grupos. **Adiado**: só vale para multidões grandes; mantém O(N²) simples por ora. |
 | 📊 | Bateria de testes de variação | Caderno 14/05/2026 — *"dois grupos com muita afinidade e dois grupos com afinidades muito distantes, testar variação de comportamentos"*. |
-| 📊 | Métricas inspiradas em WebCrowds | Density Map, Trajectories Map, Simulation Time. |
-| ✅ | Interface runtime para ditar grupos e comportamentos | Caderno 01/04/2026. `AgentInspectorHUD.cs` (OnGUI, tecla `I`): clique seleciona o agente (por proximidade na tela, sem precisar de Collider) e abre painel para **ver/editar** `affinity`, `dominance` (sliders), `groupId` (via `SwitchGroup`, atualiza GroupManager+cor) e `isGroupLeader` (toggle transitório — `UpdateGroupLeaders` pode reverter). |
+| ✅ | Mapas de densidade e trajetórias (WebCrowds) | `MetricsLogger` grava `positions.csv` (time, agentId, x, z, groupId) por run; `tools/plot_trajectories.py` gera **mapa de trajetórias** (caminho de cada agente, cor = grupo) e **mapa de densidade** (heatmap 2D) em `Metrics/<run>/plots/`. |
+| ✅ | Controle de tempo da simulação | `TimeController.cs` (teclas `P` pausa, `[`/`]` velocidade, `\` 1×): a sim avança em passos fixos; `World.SimSpeed` controla passos/frame (0.25×–4×), `World.SimPaused` congela. |
+| ✅ | Interface runtime para ditar grupos e comportamentos | Caderno 01/04/2026. `AgentInspectorHUD.cs` (OnGUI, tecla `I`): clique seleciona o agente (por proximidade na tela, sem precisar de Collider) e abre painel para **ver/editar** `affinity`, `dominance` (sliders), `groupId` (via `SwitchGroup`, atualiza GroupManager+cor) e `isGroupLeader` (toggle transitório — `UpdateGroupLeaders` pode reverter). Mostra também `goalIndex`, `isWaiting`, nº de vizinhos do grupo e idade; toggle **câmera segue** o agente selecionado. |
 ### 🔬 Longo prazo — pesquisa e extensões
 
 | Status | Item | Notas |
 |:---:|---|---|
-| 🔬 | Pontos de densidade e caminhos preferenciais | Caderno 01/04/2026 — *"Pontos de densidade, caminhos específicos (caminhos futuros)"*. Identificar gargalos no cenário do museu. |
+| 🔬 | Pontos de densidade e caminhos preferenciais | Caderno 01/04/2026 — *"Pontos de densidade, caminhos específicos (caminhos futuros)"*. Os **mapas** já saem de `tools/plot_trajectories.py` (densidade + trajetórias); falta a **análise** (identificar gargalos no museu a partir deles). |
 | 🔬 | Aplicação a eventos culturais / museus | Caderno 01/04/2026 — objetivo aplicado. `SpawnAreas` e `Goals` como salas/corredores/saídas; evitar aglomerações e preservar liberdade de movimento. |
 | 🔬 | Comparação quantitativa `ALLOW_GROUP_CHANGES` on/off | Validar empiricamente o impacto da dinâmica de grupo. Estado gravado no CSV (`groupChangesEnabled`) + HUD; `tools/compare_runs.py` já sobrepõe runs on×off. Falta rodar as duas baterias e escrever a análise. |
 | 🔬 | Otimização O(N²) → O(N log N) | Loops de proximidade via grid espacial ou KD-tree (relacionado ao ponto de frame rate). |
