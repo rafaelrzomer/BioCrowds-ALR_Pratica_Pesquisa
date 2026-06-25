@@ -1,4 +1,4 @@
-﻿﻿/// ---------------------------------------------
+﻿/// ---------------------------------------------
 /// Contact: Henry Braun
 /// Brief: Defines an Agent
 /// Thanks to VHLab for original implementation
@@ -24,6 +24,10 @@ namespace Biocrowds.Core
         [SerializeField]
         private float _maxSpeed = 1.5f;
 
+        // ruído de velocidade por-agente (amostrado UMA vez no Start, não por frame).
+        // Antes era Random.Range por frame em CalculateVelocity → causava flicker (velocidade tremia).
+        private float _speedNoise = 0.1f;
+
         //dominance parameter
         [Range(0f, 1f)]
         public float dominance = 1.0f;
@@ -41,6 +45,11 @@ namespace Biocrowds.Core
         // timeSinceSpawn < GROUP_SWITCH_GRACE_PERIOD. The previous default of 2f bypassed
         // the grace period entirely for newly spawned agents.
         public float timeSinceSpawn = 0f;
+
+        // tempo contínuo (s) no grupo atual. World incrementa a cada step quando HasGroup;
+        // zera ao trocar de grupo (SwitchGroup) ou ao virar líder de um grupo recém-formado.
+        // Usado pela métrica "tempo médio em grupo" (proxy de estabilidade da afiliação).
+        public float timeInGroup = 0f;
 
         // group cohesion strength
         [Range(0f, 1f)]
@@ -136,6 +145,7 @@ namespace Biocrowds.Core
         void Start()
         {
             _navMeshPath = new NavMeshPath();
+            _speedNoise = Random.Range(0f, 0.2f); // amostrado uma vez; estabiliza a velocidade (anti-flicker)
             if (_visualAgent == null) _visualAgent = GetComponentInChildren<VisualAgent>();
 
             // dominance/affinity are assigned by the spawner (World.SpawnNewAgentInArea)
@@ -191,14 +201,23 @@ namespace Biocrowds.Core
 
         private void UpdateGoalPositionAndNavmesh()
         {
-            if (goalIndex >= goalsList.Count)
+            // Agentes spawnados durante a run podem ter NavmeshStep chamado no mesmo frame,
+            // antes do Start() inicializar _navMeshPath. Lazy-init evita NRE em CalculatePath.
+            if (_navMeshPath == null)
+                _navMeshPath = new NavMeshPath();
+
+            if (goalsList == null || goalsList.Count == 0 || goalIndex >= goalsList.Count)
+                return;
+
+            GameObject currentGoal = goalsList[goalIndex];
+            if (currentGoal == null)
                 return;
 
             _elapsedTime = 0.0f;
 
             //calculate agent path
             //bool foundPath = NavMesh.CalculatePath(transform.position, Goal.transform.position, NavMesh.AllAreas, _navMeshPath);
-            bool foundPath = NavMesh.CalculatePath(transform.position, goalsList[goalIndex].transform.position,
+            bool foundPath = NavMesh.CalculatePath(transform.position, currentGoal.transform.position,
                 NavMesh.AllAreas, _navMeshPath);
             //update its goal if path is found
             if (foundPath)
@@ -208,7 +227,7 @@ namespace Biocrowds.Core
             }
             else
             {
-                _goalPosition = goalsList[goalIndex].transform.position;
+                _goalPosition = currentGoal.transform.position;
                 _dirAgentGoal = _goalPosition - transform.position;
             }
         }
@@ -496,20 +515,23 @@ namespace Biocrowds.Core
             
             // Dominance increases weight on nearby auxins (encourages closer paths)
             personalityMod *= (1.0f + dominance * 0.5f);
-            
-            // Low affinity adds random variation to avoid deterministic following
-            if (affinity < 0.5f)
-            {
-                float randomFactor = 0.8f + Random.Range(0f, 0.4f) * (1.0f - affinity);
-                personalityMod *= randomFactor;
-            }
-            
+
+            // NOTA: removido o Random.Range por-frame/por-auxina que existia aqui (afinidade baixa).
+            // Ele re-sorteava o peso de cada auxina a cada frame → a direção do somatório tremia
+            // todo frame = flicker visível ("agentes pulando"). Como o fator entrava normalizado
+            // (denominador _denW), seu efeito real era ~ruído puro, não exploração útil.
+
             return baseF * personalityMod;
         }
 
-        //calculate speed vector    
+        //calculate speed vector
         public void CalculateVelocity()
         {
+            // Trava o movimento no plano XZ. Vetores de auxina e de avoidance podem ter
+            // componente Y; sem isso o agente deriva em Y e afunda no chão (pior em alta
+            // densidade, onde o avoidance vira feedback vertical). A simulação é planar.
+            _rotation.y = 0f;
+
             //distance between movement vector and origin
             float moduleM = Vector3.Distance(_rotation, Vector3.zero);
 
@@ -520,7 +542,7 @@ namespace Biocrowds.Core
             // - High dominance: moves faster (more aggressive)
             // - Low affinity: variable speed (more unpredictable)
             float speedModifier = 0.7f + (dominance * 0.3f); // dominance from 0.7x to 1.0x
-            speedModifier *= (0.9f + Random.Range(0f, 0.2f) * (1.0f - affinity)); // affinity adds stability
+            speedModifier *= (0.9f + _speedNoise * (1.0f - affinity)); // per-agent (cached), não por frame
 
             //if it is bigger than maxSpeed, use maxSpeed instead
             if (s > _maxSpeed * speedModifier)
@@ -698,6 +720,7 @@ namespace Biocrowds.Core
             int oldGroupId = groupId;
             groupId = newGroupId;
             isGroupLeader = false; // reset leader status when switching groups
+            timeInGroup = 0f;      // reinicia o contador de tempo no grupo
             _nearbyGroupMembers.Clear(); // clear nearby members list
 
             // Notifica GroupManager (se presente).

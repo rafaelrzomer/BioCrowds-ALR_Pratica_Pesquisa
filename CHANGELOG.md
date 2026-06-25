@@ -8,6 +8,40 @@ Convenções: `valor antigo ⇒ valor novo` para ajustes numéricos. 🆕 novo �
 
 ---
 
+## Patch v0.10.0 — 23/06/2026 · _pendente de tag_
+
+### Métricas
+- 🆕 `MetricsHUD.cs` (OnGUI): HUD runtime no canto da tela. Tecla `M` liga/desliga. Sem Canvas/prefab — basta o componente num GameObject da cena.
+- 🆕 Snapshot público em `World`: struct `GroupMetric` + `MetricGroups` (lista read-only) + properties `MetricTime / MetricNumAgents / MetricNumGroups / MetricNumSolo / MetricSwitchesInterval / MetricTotalSwitches`.
+- 🔧 `World.RecordMetrics` monta o snapshot **sempre** (alimenta a HUD); escrita no CSV passa a ser condicionada a `LOG_METRICS`. HUD funciona mesmo com logging desligado.
+- 🔧 `MetricsLogger`: saída dos CSVs `persistentDataPath/Metrics/ ⇒ raiz do projeto /Metrics/` (via `Directory.GetParent(Application.dataPath)`). No Editor cai dentro do repo; em build, pasta do executável.
+- 🆕 `.gitignore`: `/[Mm]etrics/` — CSVs gerados não vão para o git.
+- 🆕 Métrica **tempo médio em grupo**: `Agent.timeInGroup` (incrementado em `World.Update` quando `HasGroup`, zerado em `SwitchGroup` e ao formar grupo novo). Agregado por grupo em `RecordMetrics` → coluna `meanTimeInGroup` no `*_groups.csv` + linha por grupo na HUD.
+- 🆕 Flag **`ALLOW_GROUP_CHANGES`** exposta (`World.GroupChangesAllowed`): coluna `groupChangesEnabled` (0/1) no `*_summary.csv` + estado ON/OFF na HUD.
+- 🆕 `tools/plot_metrics.py` (pandas+matplotlib): gera PNGs + `dashboard.png` do run mais recente em `Metrics/<run>/plots/` (população, trocas, coesão/afinidade/tamanho/tempo por grupo). Tema consistente, step plots, banda ±desvio na afinidade, opções `--run`/`--dpi`.
+- 🔧 `MetricsLogger`: **um diretório por run** (`Metrics/<prefix>_<timestamp>/` com `groups.csv`/`summary.csv`) — não mistura runs. Cópias `*_excel.csv` no formato pt-BR (`;` separador, `,` decimal) via flag `WRITE_EXCEL_COPY` → abrem no Excel pt-BR com duplo-clique, sem quebrar o pipeline pandas (que lê os `.csv` padrão).
+- 🆕 `tools/build_xlsx.py` (pandas+xlsxwriter): gera `Metrics/<run>/relatorio.xlsx` — tabelas formatadas, **gráficos nativos do Excel** (linha, editáveis), **fórmulas** de KPI (MAX/AVERAGE), uma aba por métrica de grupo (pivot tempo×grupo), aba de dados crus e aba **Config**.
+- 🆕 Métrica de **jam** (`numStuck`): conta agentes que não estão esperando mas estão com velocidade `< STUCK_SPEED_THRESHOLD` (≈parados) → coluna no summary, `World.MetricNumStuck`, linha "Travados" na HUD e no gráfico de população. Quantifica gridlock/densidade.
+- 🆕 **`config.csv` por run**: `World.BuildConfigCsv()` grava seed, `MAX_AGENTS`, thresholds e demais parâmetros (`MetricsLogger.WriteRunConfig`); HUD exibe seed + maxAg. Rastreia de quais parâmetros cada run saiu.
+- 🆕 `tools/compare_runs.py`: sobrepõe uma métrica do summary (ex.: `numStuck`, `numGroups`, `totalSwitches`) de várias runs num gráfico (`Metrics/comparisons/`) — base para comparar `ALLOW_GROUP_CHANGES` on×off, seeds, densidades.
+- 🆕 `AgentInspectorHUD.cs` (OnGUI, tecla `I`): clique seleciona um agente (por proximidade na tela, sem Collider) e abre painel para ver/editar `affinity`, `dominance` (sliders), `groupId` (via `SwitchGroup`) e `isGroupLeader` (toggle transitório). Mostra `goalIndex`/`isWaiting`/nº de vizinhos/idade + toggle "câmera segue". Atende o item do Caderno "interface runtime para ditar grupos e comportamentos".
+- 🆕 `TimeController.cs` (teclas `P` pausa, `[`/`]` velocidade, `\` 1×): `World.Update` virou wrapper que roda `StepSimulation()` em loop por acumulador; `World.SimSpeed` (0.25×–4×) e `World.SimPaused` controlam o avanço. Comportamento padrão (1×) inalterado.
+- 🆕 Mapas de densidade e trajetórias: `MetricsLogger` grava `positions.csv` (time, agentId, x, z, groupId) por eval cycle (flag `LOG_POSITIONS`); `tools/plot_trajectories.py` (pandas+matplotlib) gera mapa de trajetórias (cor = grupo) e heatmap de densidade em `Metrics/<run>/plots/`. Atende Caderno (pontos de densidade/caminhos) e WebCrowds.
+- 🔧 `tools/report.bat`: agora também roda `plot_trajectories.py`.
+- 🔧 Gráficos: eixo de "Trocas" a partir de 0 (com nota quando não há trocas); "coesão" rotulada como **"Dispersão (menor = mais coeso)"** (coluna CSV segue `cohesion`).
+
+> ℹ️ Setup da HUD: adicionar o componente `MetricsHUD` a um GameObject da `Museu.unity` (campo `_world` via Inspector ou auto-find).
+
+### Reprodutibilidade
+- 🆕 Seed reproduzível: `World` expõe `USE_SEED` + `RANDOM_SEED`; `Awake` chama `Random.InitState(RANDOM_SEED)` antes de qualquer spawn. Fixa toda a população inicial (afinidade, dominância, posições de marcadores).
+
+### Correções de movimento (pré-existentes, herdadas da `main`)
+- 🐛 NRE no NavMesh: agentes spawnados durante a run tinham `NavmeshStep` chamado no mesmo frame, antes do `Start()` inicializar `_navMeshPath` → `NullReferenceException` em `NavMesh.CalculatePath`. Corrigido com lazy-init de `_navMeshPath` + guardas de goal null/vazio em `UpdateGoalPositionAndNavmesh`.
+- 🐛 Agentes afundavam no chão: `transform.Translate` aplicava o componente Y do movimento (vetores de auxina/avoidance) sem clamp; em alta densidade virava feedback vertical. `CalculateVelocity` agora zera `_rotation.y` → movimento travado no plano XZ.
+- 🐛 Flicker ("agentes pulando"): removido `Random.Range` **por-frame/por-auxina** em `GetF` (re-sorteava pesos todo frame → direção tremia; entrava normalizado, era ruído puro). O ruído de velocidade em `CalculateVelocity` virou `_speedNoise`, amostrado **uma vez** no `Start` (mantém variação entre agentes, sem tremor). Bônus: menos RNG por-frame = runs com seed mais determinísticas.
+
+---
+
 ## Patch v0.9.0 — 28/05/2026 · 9ª reunião · _pendente de tag_
 
 ### Líder

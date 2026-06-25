@@ -191,6 +191,7 @@ public class VisualAgent : MonoBehaviour
             if (_leaderMarkerPrefab != null)
             {
                 _leaderMarker = Instantiate(_leaderMarkerPrefab, transform);
+                StripUnwantedComponents(_leaderMarker); // remove Camera/Light/AudioListener vindos do FBX
                 Renderer rend = _leaderMarker.GetComponentInChildren<Renderer>();
                 if (rend != null)
                 {
@@ -218,6 +219,17 @@ public class VisualAgent : MonoBehaviour
 
         // animação simples: gira em Y
         _leaderMarker.transform.localRotation = Quaternion.Euler(0f, Time.time * _markerSpinSpeed, 0f);
+    }
+
+    /// <summary>
+    /// Remove componentes indesejados que vêm embutidos no FBX (ex.: Camera do Sketchfab),
+    /// mantendo apenas a malha. Sem isso, a Camera extra renderiza por cima da tela.
+    /// </summary>
+    private void StripUnwantedComponents(GameObject go)
+    {
+        foreach (Camera c in go.GetComponentsInChildren<Camera>(true)) Destroy(c);
+        foreach (AudioListener al in go.GetComponentsInChildren<AudioListener>(true)) Destroy(al);
+        foreach (Light l in go.GetComponentsInChildren<Light>(true)) Destroy(l);
     }
 
     /// <summary>Octaedro procedural usado quando nenhum prefab de marcador é informado.</summary>

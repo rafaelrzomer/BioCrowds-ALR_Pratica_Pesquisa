@@ -17,6 +17,13 @@ namespace Biocrowds.Core
 {
     public class World : MonoBehaviour
     {
+        [Header("Reproducibility")]
+        // Quando ligado, fixa a seed do gerador pseudo-aleatório global (UnityEngine.Random)
+        // em Awake, antes de qualquer spawn. Mesma seed + mesmos parametros => mesma populacao
+        // inicial (afinidades, dominancia, posicoes de marcadores). Pre-requisito para comparar runs.
+        [SerializeField] private bool USE_SEED = false;
+        [SerializeField] private int RANDOM_SEED = 0;
+
         [Header("Simulation Configuration")]
         public SimulationConfiguration.MarkerSpawnMethod markerSpawnMethod;
 
@@ -109,6 +116,11 @@ namespace Biocrowds.Core
         private int _newGroupsThisCycle = 0;
         private int _soloJoinsThisCycle = 0;
 
+        // métricas: escreve CSV por eval cycle para análise externa / gráficos.
+        [SerializeField] private MetricsLogger _metricsLogger;
+        private int _totalSwitches = 0;   // trocas de grupo acumuladas na run
+        private float _simTime = 0f;      // tempo de simulação acumulado (s)
+
         // reusable scratch dictionaries / lists for group evaluation to avoid per-frame GC allocations
         private Dictionary<int, List<Agent>> _groupsScratch;
         private Stack<List<Agent>> _agentListPool;
@@ -152,6 +164,49 @@ namespace Biocrowds.Core
             return _groupSizes.TryGetValue(gid, out n) ? n : 0;
         }
 
+        // --- Live metrics snapshot (read by the runtime HUD) ---
+        // Populated each eval cycle in RecordMetrics, independent of CSV logging.
+        public struct GroupMetric
+        {
+            public int groupId;
+            public int size;
+            public float cohesion;        // mean distance to centroid (XZ)
+            public float meanAffinity;
+            public float affinityStdDev;
+            public float meanTimeInGroup; // mean seconds members have spent in this group
+        }
+
+        private readonly List<GroupMetric> _metricGroups = new List<GroupMetric>();
+
+        /// <summary>Per-group metrics from the last eval cycle (read-only view for the HUD).</summary>
+        public IReadOnlyList<GroupMetric> MetricGroups => _metricGroups;
+        public float MetricTime { get; private set; }
+        public int MetricNumAgents { get; private set; }
+        public int MetricNumGroups { get; private set; }
+        public int MetricNumSolo { get; private set; }
+        public int MetricSwitchesInterval { get; private set; }
+        public int MetricTotalSwitches { get; private set; }
+        public int MetricNumStuck { get; private set; } // agentes "travados" (vel ~0 sem estar esperando)
+
+        // velocidade (m/s) abaixo da qual um agente que NÃO está esperando conta como travado (jam)
+        [SerializeField] private float STUCK_SPEED_THRESHOLD = 0.05f;
+
+        // controle de tempo da simulação (lido/escrito pelo TimeController). A sim avança em
+        // passos fixos; SimSpeed = passos por frame (0.25..4), SimPaused congela.
+        public static bool SimPaused = false;
+        public static float SimSpeed = 1f;
+        private float _simAccumulator = 0f;
+
+        /// <summary>Estado do master switch das dinâmicas de grupo (lido pela HUD e gravado no CSV).</summary>
+        public bool GroupChangesAllowed => ALLOW_GROUP_CHANGES;
+
+        // --- getters de configuração (HUD + config.csv) ---
+        public bool UsesSeed => USE_SEED;
+        public int RandomSeed => RANDOM_SEED;
+        public float MaxAgents => MAX_AGENTS;
+        public float AffinitySwitchThreshold => AFFINITY_SWITCH_THRESHOLD;
+        public float GroupProximityDistance => GROUP_PROXIMITY_DISTANCE;
+
         /// <summary>
         /// Finds and returns the leader agent of the specified group
         /// </summary>
@@ -175,6 +230,18 @@ namespace Biocrowds.Core
 
         private void Awake()
         {
+            // Fixa a seed antes de qualquer Random.Range/Random.value da simulacao.
+            if (USE_SEED)
+            {
+                Random.InitState(RANDOM_SEED);
+                Debug.Log("[World] RNG seed fixada em " + RANDOM_SEED + " (runs reproduziveis).");
+            }
+
+            // reseta o controle de tempo (statics persistem entre Plays no Editor)
+            SimPaused = false;
+            SimSpeed = 1f;
+            _simAccumulator = 0f;
+
             _newAgentID = 0;
             _nextGroupId = 0;
 
@@ -257,6 +324,16 @@ namespace Biocrowds.Core
 
             //wait a little bit to start moving
             yield return new WaitForSeconds(1.0f);
+
+            // abre os arquivos CSV de métricas (auto-find se não atribuído no Inspector)
+            if (_metricsLogger == null)
+                _metricsLogger = FindObjectOfType<MetricsLogger>();
+            if (_metricsLogger != null)
+            {
+                _metricsLogger.BeginSession();
+                _metricsLogger.WriteRunConfig(BuildConfigCsv()); // rastreabilidade: parâmetros da run
+            }
+
             _isReady = true;
         }
 
@@ -404,9 +481,24 @@ namespace Biocrowds.Core
         // Update is called once per frame
         void Update()
         {
-            //TODO: Modificar de time-deltatime para fixed frame
-            if (!_isReady)
-                return;
+            if (!_isReady) return;
+            if (SimPaused) return;
+
+            // sim em passos fixos; SimSpeed controla quantos passos rodam por frame
+            // (fracionário < 1 = câmera lenta pulando frames; > 1 = avanço rápido).
+            _simAccumulator += SimSpeed;
+            int guard = 0;
+            while (_simAccumulator >= 1f && guard++ < 16)
+            {
+                _simAccumulator -= 1f;
+                StepSimulation();
+            }
+        }
+
+        /// <summary>Um passo fixo da simulação (SIMULATION_TIME_STEP). Antes era o corpo de Update().</summary>
+        private void StepSimulation()
+        {
+            _simTime += SIMULATION_TIME_STEP;
 
             foreach (SpawnArea _area in spawnAreas)
             {
@@ -433,7 +525,11 @@ namespace Biocrowds.Core
 
             // update agent age before group evaluation
             for (int i = 0; i < _agents.Count; i++)
+            {
                 _agents[i].timeSinceSpawn += SIMULATION_TIME_STEP;
+                if (_agents[i].HasGroup)
+                    _agents[i].timeInGroup += SIMULATION_TIME_STEP;
+            }
 
             //find nearest auxins for each agent
             for (int i = 0; i < _agents.Count; i++)
@@ -470,6 +566,11 @@ namespace Biocrowds.Core
                 // remove grupos esvaziados após migrações deste ciclo
                 if (GroupManager.Instance != null)
                     GroupManager.Instance.PruneEmptyGroups();
+
+                // métricas: usa _groupsScratch fresco (reconstruído em EvaluateSoloAgentsJoiningGroups)
+                _totalSwitches += _switchesThisCycle;
+                RecordMetrics();
+                RecordPositions();
 
                 if (DEBUG_LOG_GROUP_CHANGES && (_switchesThisCycle > 0 || _newGroupsThisCycle > 0 || _soloJoinsThisCycle > 0))
                 {
@@ -786,6 +887,32 @@ namespace Biocrowds.Core
             _agentListPool.Push(list);
         }
 
+        // Monta o config.csv (key,value) da run — rastreia de quais parâmetros cada run saiu.
+        private string BuildConfigCsv()
+        {
+            var ic = System.Globalization.CultureInfo.InvariantCulture;
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("key,value");
+            void Add(string k, string v) => sb.AppendLine(k + "," + v);
+
+            Add("useSeed", USE_SEED ? "1" : "0");
+            Add("randomSeed", RANDOM_SEED.ToString(ic));
+            Add("maxAgents", MAX_AGENTS.ToString(ic));
+            Add("simulationTimeStep", SIMULATION_TIME_STEP.ToString(ic));
+            Add("agentRadius", AGENT_RADIUS.ToString(ic));
+            Add("auxinDensity", AUXIN_DENSITY.ToString(ic));
+            Add("allowGroupChanges", ALLOW_GROUP_CHANGES ? "1" : "0");
+            Add("maxGroups", MAX_GROUPS.ToString(ic));
+            Add("groupProximityDistance", GROUP_PROXIMITY_DISTANCE.ToString(ic));
+            Add("groupSwitchGracePeriod", GROUP_SWITCH_GRACE_PERIOD.ToString(ic));
+            Add("affinitySwitchThreshold", AFFINITY_SWITCH_THRESHOLD.ToString(ic));
+            Add("leaderMinTenure", LEADER_MIN_TENURE.ToString(ic));
+            Add("groupEvalInterval", GROUP_EVAL_INTERVAL.ToString(ic));
+            Add("waitTimeMultiplier", WAIT_TIME_MULTIPLIER.ToString(ic));
+            Add("stuckSpeedThreshold", STUCK_SPEED_THRESHOLD.ToString(ic));
+            return sb.ToString();
+        }
+
         private void ClearGroupsScratch()
         {
             if (_groupsScratch == null) return;
@@ -812,6 +939,107 @@ namespace Biocrowds.Core
 
                 _groupAffinityAverages[group.Key] = count > 0 ? totalAffinity / count : 0f;
                 _groupSizes[group.Key] = count;
+            }
+        }
+
+        // Calcula e grava as métricas do eval cycle (por grupo + resumo global) e o snapshot da HUD.
+        private void RecordMetrics()
+        {
+            if (_groupsScratch == null)
+                return;
+
+            // Snapshot é sempre montado (alimenta a HUD); CSV só quando o logger está ligado.
+            bool logCsv = _metricsLogger != null && _metricsLogger.LoggingEnabled;
+
+            _metricGroups.Clear();
+            int numGroups = _groupsScratch.Count;
+
+            foreach (var group in _groupsScratch)
+            {
+                List<Agent> members = group.Value;
+                int count = members.Count;
+                if (count == 0)
+                    continue;
+
+                // centróide no plano XZ
+                Vector3 centroid = Vector3.zero;
+                float affSum = 0f;
+                float affSqSum = 0f;
+                float timeInGroupSum = 0f;
+                foreach (Agent a in members)
+                {
+                    centroid += a.transform.position;
+                    affSum += a.affinity;
+                    affSqSum += a.affinity * a.affinity;
+                    timeInGroupSum += a.timeInGroup;
+                }
+                centroid /= count;
+
+                // coesão = distância média ao centróide (ignora eixo Y)
+                float distSum = 0f;
+                foreach (Agent a in members)
+                {
+                    Vector3 d = a.transform.position - centroid;
+                    d.y = 0f;
+                    distSum += d.magnitude;
+                }
+                float cohesion = distSum / count;
+
+                float meanAff = affSum / count;
+                // variância = E[x²] - E[x]²; clamp a 0 para evitar raiz de valor negativo por erro de ponto flutuante
+                float variance = Mathf.Max(0f, (affSqSum / count) - (meanAff * meanAff));
+                float affStdDev = Mathf.Sqrt(variance);
+
+                float meanTimeInGroup = timeInGroupSum / count;
+
+                _metricGroups.Add(new GroupMetric
+                {
+                    groupId = group.Key,
+                    size = count,
+                    cohesion = cohesion,
+                    meanAffinity = meanAff,
+                    affinityStdDev = affStdDev,
+                    meanTimeInGroup = meanTimeInGroup
+                });
+
+                if (logCsv)
+                    _metricsLogger.WriteGroupSample(_simTime, group.Key, count, cohesion, meanAff, affStdDev, meanTimeInGroup);
+            }
+
+            int numSolo = 0;
+            int numStuck = 0;
+            float stuckSqr = STUCK_SPEED_THRESHOLD * STUCK_SPEED_THRESHOLD;
+            foreach (Agent a in _agents)
+            {
+                if (!a.HasGroup)
+                    numSolo++;
+                // "travado" = quer andar (não está esperando) mas está praticamente parado
+                if (!a.isWaiting && a._velocity.sqrMagnitude < stuckSqr)
+                    numStuck++;
+            }
+
+            // publica o snapshot lido pela HUD
+            MetricTime = _simTime;
+            MetricNumAgents = _agents.Count;
+            MetricNumGroups = numGroups;
+            MetricNumSolo = numSolo;
+            MetricSwitchesInterval = _switchesThisCycle;
+            MetricTotalSwitches = _totalSwitches;
+            MetricNumStuck = numStuck;
+
+            if (logCsv)
+                _metricsLogger.WriteSummarySample(_simTime, _agents.Count, numGroups, numSolo, _switchesThisCycle, _totalSwitches, ALLOW_GROUP_CHANGES, numStuck);
+        }
+
+        /// <summary>Loga a posição (XZ) de cada agente no positions.csv (trajetória/densidade).</summary>
+        private void RecordPositions()
+        {
+            if (_metricsLogger == null) return;
+            for (int i = 0; i < _agents.Count; i++)
+            {
+                Agent a = _agents[i];
+                Vector3 p = a.transform.position;
+                _metricsLogger.WritePositionSample(_simTime, a.GetInstanceID(), p.x, p.z, a.groupId);
             }
         }
 
@@ -1002,6 +1230,7 @@ namespace Biocrowds.Core
 
                         newLeader.groupId       = newGroupId.Value;
                         newLeader.isGroupLeader = true;
+                        newLeader.timeInGroup   = 0f; // grupo novo: zera contador (não passa por SwitchGroup)
                         newLeader.ApplyGroupColor(); // registra a cor antes que o follower a busque
 
                         newFollower.SwitchGroup(newGroupId.Value); // copia goals do líder corretamente

@@ -23,7 +23,7 @@
 # Visual Studio cache directory
 .vs/
 .claude/
-.vscode/
+.vscode/**
 
 CLAUDE.md
 # Gradle cache directory
@@ -61,5 +61,8 @@ sysinfo.txt
 
 # Crashlytics generated file
 crashlytics-build.properties
+
+# Metrics CSVs (gerados em runtime na raiz do projeto pelo MetricsLogger)
+/[Mm]etrics/
 
 

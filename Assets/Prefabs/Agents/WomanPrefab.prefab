@@ -1039,6 +1039,13 @@ MonoBehaviour:
   avgDirSum: {x: 0, y: 0, z: 0}
   avgDir: {x: 0, y: 0, z: 0}
   dirView: []
+  _showLeaderMarker: 1
+  _leaderMarkerPrefab: {fileID: 919132149155446097, guid: b61ba4a6b7241c84c86154e9c0c02917,
+    type: 3}
+  _tintMarkerWithGroupColor: 1
+  _markerHeight: 2.2
+  _markerSize: 0.25
+  _markerSpinSpeed: 120
 --- !u!1 &3333232816833597664
 GameObject:
   m_ObjectHideFlags: 0
