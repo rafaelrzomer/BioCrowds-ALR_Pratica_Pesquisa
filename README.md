@@ -220,7 +220,7 @@ Histórico detalhado por release em [`CHANGELOG.md`](CHANGELOG.md). Resumo das v
 
 | Status | Item | Notas |
 |:---:|---|---|
-| ⏳ | Definição e montagem do **cenário complexo** | 10ª reunião (11/06/2026). Cenário de demonstração que evidencie evolução de grupos por afinidade. Base para os experimentos do artigo. |
+| ✅ | Definição e montagem do **cenário complexo** | 10ª reunião (11/06/2026). Cenário de demonstração que evidencie evolução de grupos por afinidade. Base para os experimentos do artigo. |
 
 ### 📊 Médio prazo — testes e métricas (Caderno)
 
@@ -228,10 +228,10 @@ Histórico detalhado por release em [`CHANGELOG.md`](CHANGELOG.md). Resumo das v
 
 | Status | Item | Notas |
 |:---:|---|---|
-| 🚧 | Cenários múltiplos para experimentos | Cenas `Cena#6A`/`Cena#6B`/`Sociograma` já criadas em `Assets/Scenes/CenasTeste/`. Falta variar parâmetros de forma controlada (poucos vs. muitos agentes, afinidades polarizadas vs. uniformes, layout aberto vs. corredor), gravar vídeo e anotar métricas. Inclui o **cenário complexo** da 10ª reunião. **Adicionar `MetricsLogger` a cada cena.** |
-| 🚧 | Sociograma | Cena `Sociograma.unity` criada (merge da `main`). Falta reproduzir o sociograma do trabalho original (Musse & Thalmann) para os resultados do artigo. |
-| 📊 | Estrutura do trabalho/apresentação final | 8ª reunião: Introdução → Trabalhos relacionados → Modelo (o que foi adicionado, parâmetros novos, resultados) → Métricas dos experimentos. |
-| 📊 | Bateria de testes de variação | Caderno 14/05/2026 — *"dois grupos com muita afinidade e dois grupos com afinidades muito distantes, testar variação de comportamentos"*. |
+| ✅ | Cenários múltiplos para experimentos | Cenas `Cena#6A`/`Cena#6B`/`Sociograma` criadas em `Assets/Scenes/CenasTeste/`, com variação controlada de parâmetros (poucos vs. muitos agentes, afinidades polarizadas vs. uniformes, layout aberto vs. corredor). Inclui o **cenário complexo** da 10ª reunião. |
+| ✅ | Sociograma | Cena `Sociograma.unity` criada (merge da `main`); reproduz o sociograma do trabalho original (Musse & Thalmann) para os resultados do artigo. |
+| ⏳ | Estrutura do trabalho/apresentação final | 8ª reunião: Introdução → Trabalhos relacionados → Modelo (o que foi adicionado, parâmetros novos, resultados) → Métricas dos experimentos. |
+| ✅ | Bateria de testes de variação | Caderno 14/05/2026 — *"dois grupos com muita afinidade e dois grupos com afinidades muito distantes, testar variação de comportamentos"*. |
 | ✅ | Métricas, gráficos, `.xlsx`, mapas, HUD, inspetor, controle de tempo, **duração de run**, seed | **Entregue** — uso na seção [Métricas e Relatórios](#métricas-e-relatórios) e [Controles](#controles-da-simulação); histórico no [CHANGELOG](CHANGELOG.md). |
 
 ### 🔬 Longo prazo — pesquisa e extensões

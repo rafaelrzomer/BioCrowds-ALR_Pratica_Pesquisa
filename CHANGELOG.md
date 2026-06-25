@@ -39,6 +39,12 @@ Convenções: `valor antigo ⇒ valor novo` para ajustes numéricos. 🆕 novo �
 
 > ℹ️ Setup da HUD: adicionar o componente `MetricsHUD` a um GameObject da `Museu.unity` (campo `_world` via Inspector ou auto-find).
 
+### Cenários e experimentos
+- 🆕 **Cenário complexo** de demonstração montado (10ª reunião, 11/06/2026): evidencia a evolução de grupos por afinidade no espaço. Base dos experimentos do artigo.
+- 🆕 **Cenários múltiplos** criados em `Assets/Scenes/CenasTeste/` (`Cena#6A`, `Cena#6B`, `Sociograma`) para experimentos com variação controlada de parâmetros (poucos vs. muitos agentes, afinidades polarizadas vs. uniformes, layout aberto vs. corredor).
+- 🆕 **Sociograma**: cena `Sociograma.unity` (merge da `main`) para reproduzir o sociograma do trabalho original (Musse & Thalmann) nos resultados.
+- 🆕 **Bateria de testes de variação** (Caderno 14/05/2026): dois grupos de alta afinidade vs. dois de afinidades muito distantes, testando a variação de comportamentos.
+
 ### Reprodutibilidade
 - 🆕 Seed reproduzível: `World` expõe `USE_SEED` + `RANDOM_SEED`; `Awake` chama `Random.InitState(RANDOM_SEED)` antes de qualquer spawn. Fixa toda a população inicial (afinidade, dominância, posições de marcadores).
 
