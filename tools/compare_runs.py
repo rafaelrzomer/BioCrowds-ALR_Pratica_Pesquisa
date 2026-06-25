@@ -1,25 +1,4 @@
 #!/usr/bin/env python3
-"""
-Compara varias runs do BioCrowds sobrepondo UMA metrica do summary.csv vs tempo.
-
-Util para os resultados do artigo: ex. comparar ALLOW_GROUP_CHANGES on x off,
-seeds diferentes, ou densidades diferentes — uma linha por run no mesmo grafico.
-
-Cada run e um subdiretorio de Metrics/ contendo summary.csv (layout do MetricsLogger).
-
-Uso:
-  python tools/compare_runs.py                              # todas as runs, metrica numGroups
-  python tools/compare_runs.py --metric numStuck            # escolhe a metrica
-  python tools/compare_runs.py --last 3 --metric totalSwitches
-  python tools/compare_runs.py --runs run_a run_b --metric numGroups
-  python tools/compare_runs.py --out comparacao.png
-
-Metricas disponiveis (colunas do summary.csv):
-  numAgents, numGroups, numSolo, switchesInterval, totalSwitches, numStuck, groupChangesEnabled
-
-Requisitos: pandas, matplotlib  ->  pip install pandas matplotlib
-"""
-
 import argparse
 import os
 import sys
