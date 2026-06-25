@@ -93,6 +93,37 @@ A **Game View** precisa ter foco do teclado.
 
 ---
 
+## Métricas e Relatórios
+
+Cada run grava um diretório `Metrics/<prefix>_<timestamp>/` na **raiz do projeto** (só no Editor; em build vai pra pasta do `.exe`). A pasta `Metrics/` é ignorada pelo git.
+
+| Arquivo | Conteúdo |
+|---|---|
+| `summary.csv` | 1 linha por amostra: tempo, nº de agentes/grupos/solos, trocas, jam (`numStuck`), flag `ALLOW_GROUP_CHANGES` |
+| `groups.csv` | 1 linha por grupo por amostra: tamanho, dispersão (dist. ao centróide), afinidade média/desvio, tempo em grupo |
+| `positions.csv` | posição (x,z) de cada agente por amostra — base dos mapas de trajetória/densidade |
+| `config.csv` | parâmetros da run (seed, `MAX_AGENTS`, thresholds) — rastreabilidade |
+| `*_excel.csv` | cópias no formato pt-BR (`;` e `,`) — abrem no Excel com **duplo-clique** |
+
+> CSVs padrão (`,` / `.`) são para pandas e os scripts. As cópias `*_excel.csv` (`;` / `,`) abrem direto no Excel pt-BR. O CSV padrão também abre no Excel via **Dados → De Texto/CSV** (delimitador vírgula, local Inglês-EUA).
+
+### Gerar relatórios
+
+Requer Python: `pip install pandas matplotlib xlsxwriter`.
+
+- **Windows (1 clique):** duplo-clique em **`tools/report.bat`** → gera tudo do run mais recente.
+- **Manual** (run mais recente por padrão; ou `--run <pasta>`):
+  ```bash
+  python tools/build_xlsx.py         # relatorio.xlsx: tabelas + gráficos nativos do Excel + fórmulas
+  python tools/plot_metrics.py       # PNGs por métrica + dashboard.png
+  python tools/plot_trajectories.py  # mapa de trajetórias + mapa de densidade (heatmap)
+  python tools/compare_runs.py --metric numStuck --last 3   # compara N runs numa métrica
+  ```
+
+Saídas: `relatorio.xlsx` em `Metrics/<run>/`, PNGs em `Metrics/<run>/plots/`, comparações em `Metrics/comparisons/`.
+
+---
+
 ## Parâmetros Principais (`World.cs`)
 
 | Campo | Default | Função |
@@ -177,7 +208,6 @@ Histórico detalhado por release em [`CHANGELOG.md`](CHANGELOG.md). Resumo das v
 | Status | Item | Notas |
 |:---:|---|---|
 | ⏳ | Definição e montagem do **cenário complexo** | 10ª reunião (11/06/2026). Cenário de demonstração que evidencie evolução de grupos por afinidade. Base para os experimentos do artigo. |
-| ✅ | Exportação de dados (CSV) | `MetricsLogger.cs` cria **um diretório por run** em `Metrics/<prefix>_<timestamp>/` na **raiz do projeto** (no Editor; em build, pasta do executável), com `groups.csv` (time, groupId, groupSize, coesão, afinidade média, desvio, tempo médio em grupo) e `summary.csv` (time, agentes/grupos/solos, trocas, flag `ALLOW_GROUP_CHANGES`). Também grava cópias `*_excel.csv` no formato pt-BR (`;` e `,`) p/ abrir no Excel com duplo-clique. Amostra a cada eval cycle. Pasta `Metrics/` ignorada pelo git. |
 
 ### 📊 Médio prazo — testes e métricas (Caderno)
 
@@ -187,19 +217,10 @@ Histórico detalhado por release em [`CHANGELOG.md`](CHANGELOG.md). Resumo das v
 |:---:|---|---|
 | 🚧 | Cenários múltiplos para experimentos | Cenas `Cena#6A`/`Cena#6B`/`Sociograma` já criadas em `Assets/Scenes/CenasTeste/`. Falta variar parâmetros de forma controlada (poucos vs. muitos agentes, afinidades polarizadas vs. uniformes, layout aberto vs. corredor), gravar vídeo e anotar métricas. Inclui o **cenário complexo** da 10ª reunião. **Adicionar `MetricsLogger` a cada cena.** |
 | 🚧 | Sociograma | Cena `Sociograma.unity` criada (merge da `main`). Falta reproduzir o sociograma do trabalho original (Musse & Thalmann) para os resultados do artigo. |
-| ✅ | Métricas para os experimentos | Implementadas no `MetricsLogger.cs`: **coesão de grupo** (distância média ao centróide — coluna CSV `cohesion`; **rotulada nos gráficos como _Dispersão_: menor = mais coeso**), **trocas de grupo** (intervalo + acumuladas), **tamanho dos grupos**, **nº de grupos/solos**, **desvio-padrão de afinidade** (proxy de coesão social), **tempo médio em grupo** (`timeInGroup` por agente, agregado por grupo) e a flag **`ALLOW_GROUP_CHANGES`** (0/1) no summary. |
-| ✅ | Gráficos a partir dos CSVs | `tools/plot_metrics.py` (pandas+matplotlib): localiza o run mais recente em `Metrics/`, gera PNGs + `dashboard.png` (população, trocas, dispersão/afinidade/tamanho/tempo por grupo) em `Metrics/<run>/plots/`. Uso: `python tools/plot_metrics.py` (opções `--run`, `--dpi`). |
-| ✅ | Relatório Excel (.xlsx) | `tools/build_xlsx.py` (pandas+xlsxwriter): monta `Metrics/<run>/relatorio.xlsx` com tabelas formatadas, **gráficos nativos do Excel** (editáveis), **fórmulas** (KPIs MAX/AVERAGE), aba por métrica de grupo (pivot tempo×grupo) e aba **Config** (parâmetros da run). Uso: `python tools/build_xlsx.py`. |
-| ✅ | Métrica de jam (agentes travados) | `numStuck` no summary + HUD + linha "Travados" no gráfico de população: conta agentes que **não estão esperando** mas estão com velocidade `< STUCK_SPEED_THRESHOLD` (≈parados). Quantifica gridlock/densidade. |
-| ✅ | Rastreabilidade de parâmetros | `config.csv` por run (`Metrics/<run>/`) com seed, `MAX_AGENTS`, thresholds etc.; HUD mostra seed + maxAg. Liga qual run veio de quais parâmetros. |
-| ✅ | Comparação entre runs | `tools/compare_runs.py`: sobrepõe uma métrica do summary (ex.: `numStuck`, `numGroups`, `totalSwitches`) de várias runs num gráfico → `Metrics/comparisons/`. Uso: `python tools/compare_runs.py --metric numStuck --last 3`. |
-| ✅ | HUD runtime de métricas | `MetricsHUD.cs` (OnGUI, tecla `M`): painel ao vivo lendo o snapshot público do `World` (tempo, nº de agentes/grupos/solos, trocas total+ciclo, **agentes travados**, **seed/maxAg**, e por grupo tamanho/coesão/afinidade±desvio). Atualiza a cada eval cycle, independente do CSV. |
-| ✅ | Seed reproduzível | `World` expõe `USE_SEED` + `RANDOM_SEED` no Inspector; `Awake` chama `Random.InitState(RANDOM_SEED)` antes de qualquer spawn. Como `UnityEngine.Random` é global, fixa toda a população inicial (afinidade, dominância, posições de marcadores). Pré-requisito para comparar runs. |
-| 📊 | Estrutura do trabalho/apresentação final | 8ª reunião: Introdução → Trabalhos relacionados → Modelo (o que foi adicionado, parâmetros novos, resultados) → Métricas dos experimentos. Detalhamento do artigo na seção **Artigo** acima. |
+| 📊 | Estrutura do trabalho/apresentação final | 8ª reunião: Introdução → Trabalhos relacionados → Modelo (o que foi adicionado, parâmetros novos, resultados) → Métricas dos experimentos. |
 | 📊 | Bateria de testes de variação | Caderno 14/05/2026 — *"dois grupos com muita afinidade e dois grupos com afinidades muito distantes, testar variação de comportamentos"*. |
-| ✅ | Mapas de densidade e trajetórias (WebCrowds) | `MetricsLogger` grava `positions.csv` (time, agentId, x, z, groupId) por run; `tools/plot_trajectories.py` gera **mapa de trajetórias** (caminho de cada agente, cor = grupo) e **mapa de densidade** (heatmap 2D) em `Metrics/<run>/plots/`. |
-| ✅ | Controle de tempo da simulação | `TimeController.cs` (teclas `P` pausa, `[`/`]` velocidade, `\` 1×): a sim avança em passos fixos; `World.SimSpeed` controla passos/frame (0.25×–4×), `World.SimPaused` congela. |
-| ✅ | Interface runtime para ditar grupos e comportamentos | Caderno 01/04/2026. `AgentInspectorHUD.cs` (OnGUI, tecla `I`): clique seleciona o agente (por proximidade na tela, sem precisar de Collider) e abre painel para **ver/editar** `affinity`, `dominance` (sliders), `groupId` (via `SwitchGroup`, atualiza GroupManager+cor) e `isGroupLeader` (toggle transitório — `UpdateGroupLeaders` pode reverter). Mostra também `goalIndex`, `isWaiting`, nº de vizinhos do grupo e idade; toggle **câmera segue** o agente selecionado. |
+| ✅ | Métricas, gráficos, `.xlsx`, mapas, HUD, inspetor, controle de tempo, seed | **Entregue** — uso na seção [Métricas e Relatórios](#métricas-e-relatórios) e [Controles](#controles-da-simulação); histórico no [CHANGELOG](CHANGELOG.md). |
+
 ### 🔬 Longo prazo — pesquisa e extensões
 
 | Status | Item | Notas |
