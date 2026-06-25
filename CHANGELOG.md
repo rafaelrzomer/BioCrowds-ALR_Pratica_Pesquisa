@@ -24,6 +24,7 @@ Convenções: `valor antigo ⇒ valor novo` para ajustes numéricos. 🆕 novo �
 - 🆕 Métrica de **jam** (`numStuck`): conta agentes que não estão esperando mas estão com velocidade `< STUCK_SPEED_THRESHOLD` (≈parados) → coluna no summary, `World.MetricNumStuck`, linha "Travados" na HUD e no gráfico de população. Quantifica gridlock/densidade.
 - 🆕 **`config.csv` por run**: `World.BuildConfigCsv()` grava seed, `MAX_AGENTS`, thresholds e demais parâmetros (`MetricsLogger.WriteRunConfig`); HUD exibe seed + maxAg. Rastreia de quais parâmetros cada run saiu.
 - 🆕 `tools/compare_runs.py`: sobrepõe uma métrica do summary (ex.: `numStuck`, `numGroups`, `totalSwitches`) de várias runs num gráfico (`Metrics/comparisons/`) — base para comparar `ALLOW_GROUP_CHANGES` on×off, seeds, densidades.
+- 🆕 `AgentInspectorHUD.cs` (OnGUI, tecla `I`): clique seleciona um agente (por proximidade na tela, sem Collider) e abre painel para ver/editar `affinity`, `dominance` (sliders), `groupId` (via `SwitchGroup`) e `isGroupLeader` (toggle transitório). Atende o item do Caderno "interface runtime para ditar grupos e comportamentos".
 - 🔧 Gráficos: eixo de "Trocas" a partir de 0 (com nota quando não há trocas); "coesão" rotulada como **"Dispersão (menor = mais coeso)"** (coluna CSV segue `cohesion`).
 
 > ℹ️ Setup da HUD: adicionar o componente `MetricsHUD` a um GameObject da `Museu.unity` (campo `_world` via Inspector ou auto-find).
