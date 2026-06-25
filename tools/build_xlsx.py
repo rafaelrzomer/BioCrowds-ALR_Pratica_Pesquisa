@@ -1,25 +1,4 @@
 #!/usr/bin/env python3
-"""
-Gera um relatorio .xlsx (Excel) a partir dos CSVs de metricas do BioCrowds.
-
-Diferente do plot_metrics.py (que gera PNGs), este monta UMA planilha .xlsx com:
-  - tabelas formatadas (cabecalho, larguras, formatos numericos);
-  - graficos NATIVOS do Excel (linha) — editaveis dentro do Excel, nao imagens;
-  - KPIs com FORMULAS reais (MAX/AVERAGE/etc.);
-  - uma aba por metrica de grupo (pivot tempo x groupId).
-
-Layout de entrada (igual ao MetricsLogger): cada run e um subdiretorio de Metrics/
-contendo summary.csv e groups.csv (formato padrao , / .).
-
-Uso:
-  python tools/build_xlsx.py                 # run mais recente em ./Metrics
-  python tools/build_xlsx.py --dir caminho/Metrics
-  python tools/build_xlsx.py --run biocrowds_metrics_20260625_120000
-  python tools/build_xlsx.py --out relatorio.xlsx
-
-Requisitos: pandas, xlsxwriter  ->  pip install pandas xlsxwriter
-"""
-
 import argparse
 import os
 import sys
@@ -84,13 +63,6 @@ def write_table(ws, df, fmts, header_fmt, start_row=0, start_col=0):
 
 def add_line_chart(wb, ws, sheet, title, x_axis, y_axis,
                    cat_col, val_cols, n_rows, header_row, anchor, y_min=None):
-    """
-    Cria um grafico de linha referenciando dados ja escritos na planilha.
-    cat_col: indice da coluna de categorias (eixo X).
-    val_cols: lista de (col_idx, nome_serie).
-    n_rows: numero de linhas de DADOS (sem cabecalho). header_row: linha do cabecalho (0-based).
-    y_min: forca o minimo do eixo Y (ex.: 0 para contagens/trocas).
-    """
     chart = wb.add_chart({"type": "line"})
     first = header_row + 1
     last = header_row + n_rows
