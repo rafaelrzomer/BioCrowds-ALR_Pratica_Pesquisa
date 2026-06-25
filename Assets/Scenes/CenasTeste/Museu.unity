@@ -4364,7 +4364,7 @@ PrefabInstance:
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: initialLoopGoals
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
@@ -4384,22 +4384,22 @@ PrefabInstance:
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: initialWaitList.Array.size
-      value: 4
+      value: 7
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: initialRemoveWhenGoalReached
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: repeatingGoalList.Array.size
-      value: 4
+      value: 7
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: repeatingWaitList.Array.size
-      value: 4
+      value: 7
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
@@ -4424,12 +4424,27 @@ PrefabInstance:
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: initialWaitList.Array.data[4]
-      value: 2
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: initialWaitList.Array.data[5]
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: initialWaitList.Array.data[6]
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: initialWaitList.Array.data[7]
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: repeatingRemoveWhenGoalReached
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
@@ -4450,7 +4465,7 @@ PrefabInstance:
         type: 3}
       propertyPath: repeatingGoalList.Array.data[3]
       value: 
-      objectReference: {fileID: 19993222}
+      objectReference: {fileID: 329650074}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: repeatingGoalList.Array.data[4]
@@ -4458,33 +4473,63 @@ PrefabInstance:
       objectReference: {fileID: 1070360915}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
+      propertyPath: repeatingGoalList.Array.data[5]
+      value: 
+      objectReference: {fileID: 1140519086}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: repeatingGoalList.Array.data[6]
+      value: 
+      objectReference: {fileID: 19993222}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: repeatingGoalList.Array.data[7]
+      value: 
+      objectReference: {fileID: 19993222}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
       propertyPath: repeatingWaitList.Array.data[0]
-      value: 0
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: repeatingWaitList.Array.data[1]
-      value: 0
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: repeatingWaitList.Array.data[2]
-      value: 0
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: repeatingWaitList.Array.data[3]
-      value: 0
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: repeatingWaitList.Array.data[4]
-      value: 2
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: repeatingWaitList.Array.data[5]
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: repeatingWaitList.Array.data[6]
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: repeatingWaitList.Array.data[7]
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: initialAgentsGoalList.Array.size
-      value: 4
+      value: 7
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
@@ -4505,12 +4550,27 @@ PrefabInstance:
         type: 3}
       propertyPath: initialAgentsGoalList.Array.data[3]
       value: 
-      objectReference: {fileID: 19993222}
+      objectReference: {fileID: 329650074}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: initialAgentsGoalList.Array.data[4]
       value: 
       objectReference: {fileID: 1070360915}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: initialAgentsGoalList.Array.data[5]
+      value: 
+      objectReference: {fileID: 1140519086}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: initialAgentsGoalList.Array.data[6]
+      value: 
+      objectReference: {fileID: 19993222}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: initialAgentsGoalList.Array.data[7]
+      value: 
+      objectReference: {fileID: 19993222}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: bb2431132316b8041a8a6879b436a83a, type: 3}
 --- !u!1001 &168197572
@@ -9713,17 +9773,17 @@ PrefabInstance:
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: cycleLenght
-      value: 15
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: initialLoopGoals
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: repeatingLoopGoals
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
@@ -9738,22 +9798,22 @@ PrefabInstance:
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: initialWaitList.Array.size
-      value: 4
+      value: 7
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: initialRemoveWhenGoalReached
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: repeatingGoalList.Array.size
-      value: 4
+      value: 7
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: repeatingWaitList.Array.size
-      value: 4
+      value: 7
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
@@ -9782,8 +9842,23 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
+      propertyPath: initialWaitList.Array.data[5]
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: initialWaitList.Array.data[6]
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: initialWaitList.Array.data[7]
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
       propertyPath: repeatingRemoveWhenGoalReached
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
@@ -9804,12 +9879,27 @@ PrefabInstance:
         type: 3}
       propertyPath: repeatingGoalList.Array.data[3]
       value: 
-      objectReference: {fileID: 19993222}
+      objectReference: {fileID: 329650074}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: repeatingGoalList.Array.data[4]
       value: 
       objectReference: {fileID: 1070360915}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: repeatingGoalList.Array.data[5]
+      value: 
+      objectReference: {fileID: 1140519086}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: repeatingGoalList.Array.data[6]
+      value: 
+      objectReference: {fileID: 19993222}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: repeatingGoalList.Array.data[7]
+      value: 
+      objectReference: {fileID: 19993222}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: repeatingWaitList.Array.data[0]
@@ -9837,8 +9927,23 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
+      propertyPath: repeatingWaitList.Array.data[5]
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: repeatingWaitList.Array.data[6]
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: repeatingWaitList.Array.data[7]
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
       propertyPath: initialAgentsGoalList.Array.size
-      value: 4
+      value: 7
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
@@ -9859,12 +9964,27 @@ PrefabInstance:
         type: 3}
       propertyPath: initialAgentsGoalList.Array.data[3]
       value: 
-      objectReference: {fileID: 19993222}
+      objectReference: {fileID: 329650074}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: initialAgentsGoalList.Array.data[4]
       value: 
       objectReference: {fileID: 1070360915}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: initialAgentsGoalList.Array.data[5]
+      value: 
+      objectReference: {fileID: 1140519086}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: initialAgentsGoalList.Array.data[6]
+      value: 
+      objectReference: {fileID: 19993222}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: initialAgentsGoalList.Array.data[7]
+      value: 
+      objectReference: {fileID: 19993222}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: bb2431132316b8041a8a6879b436a83a, type: 3}
 --- !u!1001 &373172205
@@ -20740,12 +20860,12 @@ PrefabInstance:
     - target: {fileID: 114285194632179770, guid: 3d322bc9d9d73524b9a1ca068bbf97c7,
         type: 3}
       propertyPath: MAX_AGENTS
-      value: 10
+      value: 60
       objectReference: {fileID: 0}
     - target: {fileID: 114285194632179770, guid: 3d322bc9d9d73524b9a1ca068bbf97c7,
         type: 3}
       propertyPath: MAX_GROUPS
-      value: 5
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 114285194632179770, guid: 3d322bc9d9d73524b9a1ca068bbf97c7,
         type: 3}
@@ -20775,7 +20895,7 @@ PrefabInstance:
     - target: {fileID: 114285194632179770, guid: 3d322bc9d9d73524b9a1ca068bbf97c7,
         type: 3}
       propertyPath: SIMULATION_TIME_STEP
-      value: 0.5
+      value: 0.05
       objectReference: {fileID: 0}
     - target: {fileID: 114285194632179770, guid: 3d322bc9d9d73524b9a1ca068bbf97c7,
         type: 3}
@@ -20800,7 +20920,7 @@ PrefabInstance:
     - target: {fileID: 114285194632179770, guid: 3d322bc9d9d73524b9a1ca068bbf97c7,
         type: 3}
       propertyPath: _agentPrefabList.Array.size
-      value: 3
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 114285194632179770, guid: 3d322bc9d9d73524b9a1ca068bbf97c7,
         type: 3}
@@ -24713,17 +24833,17 @@ PrefabInstance:
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: cycleLenght
-      value: 15
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: initialLoopGoals
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: repeatingLoopGoals
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
@@ -24738,22 +24858,22 @@ PrefabInstance:
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: initialWaitList.Array.size
-      value: 4
+      value: 7
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: initialRemoveWhenGoalReached
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: repeatingGoalList.Array.size
-      value: 4
+      value: 7
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: repeatingWaitList.Array.size
-      value: 4
+      value: 7
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
@@ -24778,12 +24898,27 @@ PrefabInstance:
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: initialWaitList.Array.data[4]
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: initialWaitList.Array.data[5]
       value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
+      propertyPath: initialWaitList.Array.data[6]
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: initialWaitList.Array.data[7]
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
       propertyPath: repeatingRemoveWhenGoalReached
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
@@ -24804,12 +24939,27 @@ PrefabInstance:
         type: 3}
       propertyPath: repeatingGoalList.Array.data[3]
       value: 
-      objectReference: {fileID: 19993222}
+      objectReference: {fileID: 1070360915}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: repeatingGoalList.Array.data[4]
       value: 
       objectReference: {fileID: 329650074}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: repeatingGoalList.Array.data[5]
+      value: 
+      objectReference: {fileID: 1140519086}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: repeatingGoalList.Array.data[6]
+      value: 
+      objectReference: {fileID: 19993222}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: repeatingGoalList.Array.data[7]
+      value: 
+      objectReference: {fileID: 19993222}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: repeatingWaitList.Array.data[0]
@@ -24837,8 +24987,23 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
+      propertyPath: repeatingWaitList.Array.data[5]
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: repeatingWaitList.Array.data[6]
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: repeatingWaitList.Array.data[7]
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
       propertyPath: initialAgentsGoalList.Array.size
-      value: 4
+      value: 7
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
@@ -24859,12 +25024,27 @@ PrefabInstance:
         type: 3}
       propertyPath: initialAgentsGoalList.Array.data[3]
       value: 
-      objectReference: {fileID: 19993222}
+      objectReference: {fileID: 1070360915}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: initialAgentsGoalList.Array.data[4]
       value: 
       objectReference: {fileID: 329650074}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: initialAgentsGoalList.Array.data[5]
+      value: 
+      objectReference: {fileID: 1140519086}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: initialAgentsGoalList.Array.data[6]
+      value: 
+      objectReference: {fileID: 19993222}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: initialAgentsGoalList.Array.data[7]
+      value: 
+      objectReference: {fileID: 19993222}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: bb2431132316b8041a8a6879b436a83a, type: 3}
 --- !u!1 &822736934 stripped
@@ -58082,17 +58262,17 @@ PrefabInstance:
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: cycleLenght
-      value: 15
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: initialLoopGoals
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: repeatingLoopGoals
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
@@ -58107,22 +58287,22 @@ PrefabInstance:
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: initialWaitList.Array.size
-      value: 4
+      value: 7
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: initialRemoveWhenGoalReached
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: repeatingGoalList.Array.size
-      value: 4
+      value: 7
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: repeatingWaitList.Array.size
-      value: 4
+      value: 7
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
@@ -58151,8 +58331,23 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
+      propertyPath: initialWaitList.Array.data[5]
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: initialWaitList.Array.data[6]
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: initialWaitList.Array.data[7]
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
       propertyPath: repeatingRemoveWhenGoalReached
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
@@ -58173,12 +58368,27 @@ PrefabInstance:
         type: 3}
       propertyPath: repeatingGoalList.Array.data[3]
       value: 
-      objectReference: {fileID: 1140519086}
+      objectReference: {fileID: 329650074}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: repeatingGoalList.Array.data[4]
       value: 
       objectReference: {fileID: 19993222}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: repeatingGoalList.Array.data[5]
+      value: 
+      objectReference: {fileID: 1070360915}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: repeatingGoalList.Array.data[6]
+      value: 
+      objectReference: {fileID: 1140519086}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: repeatingGoalList.Array.data[7]
+      value: 
+      objectReference: {fileID: 1140519086}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: repeatingWaitList.Array.data[0]
@@ -58206,8 +58416,23 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
+      propertyPath: repeatingWaitList.Array.data[5]
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: repeatingWaitList.Array.data[6]
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: repeatingWaitList.Array.data[7]
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
       propertyPath: initialAgentsGoalList.Array.size
-      value: 4
+      value: 7
       objectReference: {fileID: 0}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
@@ -58228,12 +58453,27 @@ PrefabInstance:
         type: 3}
       propertyPath: initialAgentsGoalList.Array.data[3]
       value: 
-      objectReference: {fileID: 1140519086}
+      objectReference: {fileID: 329650074}
     - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
         type: 3}
       propertyPath: initialAgentsGoalList.Array.data[4]
       value: 
       objectReference: {fileID: 19993222}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: initialAgentsGoalList.Array.data[5]
+      value: 
+      objectReference: {fileID: 1070360915}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: initialAgentsGoalList.Array.data[6]
+      value: 
+      objectReference: {fileID: 1140519086}
+    - target: {fileID: 3211918698737073743, guid: bb2431132316b8041a8a6879b436a83a,
+        type: 3}
+      propertyPath: initialAgentsGoalList.Array.data[7]
+      value: 
+      objectReference: {fileID: 1140519086}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: bb2431132316b8041a8a6879b436a83a, type: 3}
 --- !u!4 &1925186596 stripped
