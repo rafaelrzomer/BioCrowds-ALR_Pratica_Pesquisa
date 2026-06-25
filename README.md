@@ -12,7 +12,7 @@ Resumo por release. **Detalhes completos em [`CHANGELOG.md`](CHANGELOG.md).** Ta
 
 | Tag | Data | Resumo | Commit |
 |---|---|---|---|
-| `v0.10.0` | 25/06/2026 | **Métricas:** HUD runtime (`M`), CSV por run (+cópias pt-BR `*_excel.csv` e `config.csv`), tempo médio em grupo, jam (`numStuck`), dispersão, flag `ALLOW_GROUP_CHANGES`, seed reproduzível. **Tooling Python:** gráficos (`plot_metrics`), relatório `.xlsx` (`build_xlsx`), comparador de runs (`compare_runs`), mapas de densidade/trajetória (`plot_trajectories`), `report.bat`. **Runtime:** inspetor de agente (`I`), controle de tempo (`P`/`[`/`]`/`\`). **Correções:** NavMesh NRE, afundamento (lock XZ), flicker (RNG por-frame). | _pendente_ |
+| `v0.10.0` | 25/06/2026 | **Métricas:** HUD runtime (`M`), CSV por run (+cópias pt-BR `*_excel.csv` e `config.csv`), tempo médio em grupo, jam (`numStuck`), dispersão, flag `ALLOW_GROUP_CHANGES`, seed reproduzível. **Tooling Python:** gráficos (`plot_metrics`), relatório `.xlsx` (`build_xlsx`), comparador de runs (`compare_runs`), mapas de densidade/trajetória (`plot_trajectories`), `report.bat`. **Runtime:** inspetor de agente (`I`), controle de tempo (`P`/`[`/`]`/`\`). **Correções:** NavMesh NRE, afundamento (lock XZ), flicker (RNG por-frame). | `b590c13`, `a11dac4`, `f447a2e`, `5877ac6`, `194c44c`, `8307b8b` |
 | `v0.9.0` | 28/05/2026 | Diamante 3D como marcador do líder; remoção de brilho/escala do corpo; `SpawnNewAgent` legado alinhado. | _pendente_ |
 | `v0.8.0` | 28/05/2026 | `Debug.Break` removido; grupos ordenados no Inspector; remoção segura de agentes; marcador do líder configurável. | `400b8b9` |
 | `v0.7.0` | 22/05/2026 | `Group` + `GroupManager`; sync de goals; tenure de líder; affinity por `SpawnArea`; diamante; tecla `G`. | `7a3b226` |
