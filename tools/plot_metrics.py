@@ -131,12 +131,18 @@ def default_metrics_dir():
     return os.path.join(os.path.dirname(here), "Metrics")
 
 
+def csv_dir(run_dir):
+    """CSVs ficam em <run>/csv/. Fallback p/ <run>/ (runs antigas)."""
+    sub = os.path.join(run_dir, "csv")
+    return sub if os.path.isdir(sub) else run_dir
+
+
 def find_latest_run(metrics_dir):
-    """Cada run e um subdiretorio de Metrics/ contendo summary.csv. Retorna o mais recente."""
+    """Cada run e um subdiretorio de Metrics/ contendo csv/summary.csv. Retorna o mais recente."""
     candidates = []
     for name in os.listdir(metrics_dir):
         sub = os.path.join(metrics_dir, name)
-        if os.path.isdir(sub) and os.path.isfile(os.path.join(sub, "summary.csv")):
+        if os.path.isdir(sub) and os.path.isfile(os.path.join(csv_dir(sub), "summary.csv")):
             candidates.append(sub)
     if not candidates:
         return None
@@ -167,8 +173,9 @@ def main():
         sys.exit(f"Nenhum run (subdiretorio com summary.csv) encontrado em {metrics_dir}")
 
     run_dir = os.path.join(metrics_dir, run)
-    summary_path = os.path.join(run_dir, "summary.csv")
-    groups_path = os.path.join(run_dir, "groups.csv")
+    cdir = csv_dir(run_dir)
+    summary_path = os.path.join(cdir, "summary.csv")
+    groups_path = os.path.join(cdir, "groups.csv")
     if not os.path.isfile(summary_path):
         sys.exit(f"Arquivo nao encontrado: {summary_path}")
 

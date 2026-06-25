@@ -50,11 +50,17 @@ def default_metrics_dir():
     return os.path.join(os.path.dirname(here), "Metrics")
 
 
+def csv_dir(run_dir):
+    """CSVs ficam em <run>/csv/. Fallback p/ <run>/ (runs antigas)."""
+    sub = os.path.join(run_dir, "csv")
+    return sub if os.path.isdir(sub) else run_dir
+
+
 def find_latest_run(metrics_dir):
     cands = []
     for name in os.listdir(metrics_dir):
         sub = os.path.join(metrics_dir, name)
-        if os.path.isdir(sub) and os.path.isfile(os.path.join(sub, "positions.csv")):
+        if os.path.isdir(sub) and os.path.isfile(os.path.join(csv_dir(sub), "positions.csv")):
             cands.append(sub)
     if not cands:
         return None
@@ -80,14 +86,26 @@ def plot_trajectories(df, out_dir, run, dpi):
     _save(fig, out_dir, "trajectories.png", dpi)
 
 
-def plot_density(df, out_dir, run, dpi, bins):
+def plot_density(df, out_dir, run, dpi, bins, smooth=False):
     fig, ax = plt.subplots(figsize=(9, 8))
-    h = ax.hist2d(df["x"], df["z"], bins=bins, cmap="inferno")
-    fig.colorbar(h[3], ax=ax, label="amostras na celula (densidade)")
+    if smooth:
+        # histograma 2D + imshow com interpolacao gaussiana = gradiente continuo
+        # (sem dependencia nova; numpy ja vem com pandas/matplotlib).
+        import numpy as np
+        h, xedges, yedges = np.histogram2d(df["x"], df["z"], bins=bins)
+        extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
+        im = ax.imshow(h.T, origin="lower", extent=extent, cmap="inferno",
+                       interpolation="gaussian", aspect="equal")
+        fig.colorbar(im, ax=ax, label="amostras na celula (densidade, suavizado)")
+        suf = " [suavizado]"
+    else:
+        res = ax.hist2d(df["x"], df["z"], bins=bins, cmap="inferno")
+        fig.colorbar(res[3], ax=ax, label="amostras na celula (densidade)")
+        ax.set_aspect("equal", adjustable="box")
+        suf = ""
     ax.set_xlabel("x")
     ax.set_ylabel("z")
-    ax.set_title(f"Mapa de densidade (onde os agentes mais passaram)\n{run}")
-    ax.set_aspect("equal", adjustable="box")
+    ax.set_title(f"Mapa de densidade (onde os agentes mais passaram){suf}\n{run}")
     _save(fig, out_dir, "density.png", dpi)
 
 
@@ -106,6 +124,12 @@ def main():
     ap.add_argument("--out", default=None, help="Pasta de saida (default: <run>/plots).")
     ap.add_argument("--bins", type=int, default=60, help="Resolucao do mapa de densidade (default: 60).")
     ap.add_argument("--dpi", type=int, default=150)
+    ap.add_argument("--smooth", action="store_true",
+                    help="Suaviza o mapa de densidade (imshow + interpolacao gaussiana).")
+    ap.add_argument("--ask-smooth", action="store_true",
+                    help="Se amostras >= --big-threshold, pergunta interativamente se suaviza.")
+    ap.add_argument("--big-threshold", type=int, default=5000,
+                    help="Numero de amostras a partir do qual a run e 'grande' (default: 5000).")
     args = ap.parse_args()
 
     metrics_dir = args.dir or default_metrics_dir()
@@ -116,7 +140,7 @@ def main():
     if not run:
         sys.exit(f"Nenhuma run com positions.csv em {metrics_dir} (LOG_POSITIONS ligado?)")
 
-    pos_path = os.path.join(metrics_dir, run, "positions.csv")
+    pos_path = os.path.join(csv_dir(os.path.join(metrics_dir, run)), "positions.csv")
     if not os.path.isfile(pos_path):
         sys.exit(f"positions.csv nao encontrado: {pos_path}")
 
@@ -128,8 +152,18 @@ def main():
         sys.exit("positions.csv vazio.")
 
     print(f"Run: {run}  ({len(df)} amostras, {df['agentId'].nunique()} agentes)")
+
+    # decide suavizacao: --smooth forca; --ask-smooth pergunta so se a run for grande.
+    smooth = args.smooth
+    if args.ask_smooth and not smooth and len(df) >= args.big_threshold:
+        try:
+            resp = input(f"Run grande ({len(df)} amostras). Suavizar o mapa de densidade? [s/N]: ").strip().lower()
+            smooth = resp in ("s", "sim", "y", "yes")
+        except EOFError:
+            smooth = False  # sem terminal interativo: mantem o padrao (quadriculado)
+
     plot_trajectories(df, out_dir, run, args.dpi)
-    plot_density(df, out_dir, run, args.dpi, args.bins)
+    plot_density(df, out_dir, run, args.dpi, args.bins, smooth=smooth)
     print("Concluido.")
 
 

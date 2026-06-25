@@ -22,11 +22,17 @@ def default_metrics_dir():
     return os.path.join(os.path.dirname(here), "Metrics")
 
 
+def csv_dir(run_dir):
+    """CSVs ficam em <run>/csv/. Fallback p/ <run>/ (runs antigas)."""
+    sub = os.path.join(run_dir, "csv")
+    return sub if os.path.isdir(sub) else run_dir
+
+
 def find_latest_run(metrics_dir):
     candidates = []
     for name in os.listdir(metrics_dir):
         sub = os.path.join(metrics_dir, name)
-        if os.path.isdir(sub) and os.path.isfile(os.path.join(sub, "summary.csv")):
+        if os.path.isdir(sub) and os.path.isfile(os.path.join(csv_dir(sub), "summary.csv")):
             candidates.append(sub)
     if not candidates:
         return None
@@ -83,8 +89,9 @@ def add_line_chart(wb, ws, sheet, title, x_axis, y_axis,
 
 
 def build(run_dir, out_path):
-    summary = pd.read_csv(os.path.join(run_dir, "summary.csv"))
-    groups_path = os.path.join(run_dir, "groups.csv")
+    cdir = csv_dir(run_dir)
+    summary = pd.read_csv(os.path.join(cdir, "summary.csv"))
+    groups_path = os.path.join(cdir, "groups.csv")
     groups = pd.read_csv(groups_path) if os.path.isfile(groups_path) else pd.DataFrame()
 
     wb_engine = pd.ExcelWriter(out_path, engine="xlsxwriter")
@@ -171,7 +178,7 @@ def build(run_dir, out_path):
         groups.to_excel(wb_engine, sheet_name="DadosGrupos", index=False)
 
     # =================== ABA CONFIG (parametros da run) ===================
-    config_path = os.path.join(run_dir, "config.csv")
+    config_path = os.path.join(cdir, "config.csv")
     if os.path.isfile(config_path):
         cfg = pd.read_csv(config_path)
         cfg.to_excel(wb_engine, sheet_name="Config", index=False)
@@ -195,8 +202,8 @@ def main():
         sys.exit(f"Nenhum run (subdiretorio com summary.csv) encontrado em {metrics_dir}")
 
     run_dir = os.path.join(metrics_dir, run)
-    if not os.path.isfile(os.path.join(run_dir, "summary.csv")):
-        sys.exit(f"summary.csv nao encontrado em {run_dir}")
+    if not os.path.isfile(os.path.join(csv_dir(run_dir), "summary.csv")):
+        sys.exit(f"summary.csv nao encontrado em {csv_dir(run_dir)}")
 
     out_path = args.out or os.path.join(run_dir, "relatorio.xlsx")
 

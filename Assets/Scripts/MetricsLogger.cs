@@ -6,11 +6,12 @@ using UnityEngine;
 /// <summary>
 /// Grava métricas da simulação em arquivos CSV para análise externa / criação de gráficos.
 ///
-/// Cada run cria seu próprio diretório em Metrics/&lt;prefix&gt;_&lt;timestamp&gt;/ contendo:
-///   groups.csv         — uma linha por grupo por amostra (coesão, tamanho, afinidade, tempo).
-///   summary.csv        — uma linha global por amostra (nº de grupos, solos, trocas).
-///   groups_excel.csv   — mesma coisa, mas no formato pt-BR (separador ';', decimal ',').
-///   summary_excel.csv  —   "        "
+/// Cada run cria seu próprio diretório em Metrics/&lt;prefix&gt;_&lt;timestamp&gt;/ e grava os
+/// CSVs num subdiretório csv/ (os scripts Python depositam plots/ e relatorio.xlsx ao lado):
+///   csv/groups.csv         — uma linha por grupo por amostra (coesão, tamanho, afinidade, tempo).
+///   csv/summary.csv        — uma linha global por amostra (nº de grupos, solos, trocas).
+///   csv/groups_excel.csv   — mesma coisa, mas no formato pt-BR (separador ';', decimal ',').
+///   csv/summary_excel.csv  —   "        "
 ///
 /// Os *.csv padrão usam CultureInfo.InvariantCulture (vírgula separa colunas, ponto decimal):
 /// lidos direto por pandas / o script tools/plot_metrics.py e por Excel via "De Texto/CSV".
@@ -36,7 +37,8 @@ public class MetricsLogger : MonoBehaviour
     private StreamWriter _groupsWriterXl;
     private StreamWriter _summaryWriterXl;
     private StreamWriter _positionsWriter;
-    private string _runDir;
+    private string _runDir;   // raiz da run (contém csv/, plots/, relatorio.xlsx)
+    private string _csvDir;   // <runDir>/csv — onde ficam todos os .csv
     private bool _open;
 
     public bool LoggingEnabled => LOG_METRICS;
@@ -55,30 +57,33 @@ public class MetricsLogger : MonoBehaviour
         string stamp = DateTime.Now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
         string runName = $"{FILE_NAME_PREFIX}_{stamp}";
 
-        // um diretório por run — não mistura arquivos de runs diferentes
+        // um diretório por run — não mistura arquivos de runs diferentes.
+        // Estrutura: <runDir>/csv (todos os .csv), <runDir>/plots (PNGs), <runDir>/relatorio.xlsx
         string runDir = Path.Combine(projectRoot, "Metrics", runName);
-        Directory.CreateDirectory(runDir);
+        string csvDir = Path.Combine(runDir, "csv");
+        Directory.CreateDirectory(csvDir);
         _runDir = runDir;
+        _csvDir = csvDir;
 
         const string groupsHeader = "time,groupId,groupSize,cohesion,meanAffinity,affinityStdDev,meanTimeInGroup";
         const string summaryHeader = "time,numAgents,numGroups,numSolo,switchesInterval,totalSwitches,groupChangesEnabled,numStuck";
 
-        _groupsWriter = new StreamWriter(Path.Combine(runDir, "groups.csv"), false);
-        _summaryWriter = new StreamWriter(Path.Combine(runDir, "summary.csv"), false);
+        _groupsWriter = new StreamWriter(Path.Combine(csvDir, "groups.csv"), false);
+        _summaryWriter = new StreamWriter(Path.Combine(csvDir, "summary.csv"), false);
         _groupsWriter.WriteLine(groupsHeader);
         _summaryWriter.WriteLine(summaryHeader);
 
         if (WRITE_EXCEL_COPY)
         {
-            _groupsWriterXl = new StreamWriter(Path.Combine(runDir, "groups_excel.csv"), false);
-            _summaryWriterXl = new StreamWriter(Path.Combine(runDir, "summary_excel.csv"), false);
+            _groupsWriterXl = new StreamWriter(Path.Combine(csvDir, "groups_excel.csv"), false);
+            _summaryWriterXl = new StreamWriter(Path.Combine(csvDir, "summary_excel.csv"), false);
             _groupsWriterXl.WriteLine(ToExcel(groupsHeader));
             _summaryWriterXl.WriteLine(ToExcel(summaryHeader));
         }
 
         if (LOG_POSITIONS)
         {
-            _positionsWriter = new StreamWriter(Path.Combine(runDir, "positions.csv"), false);
+            _positionsWriter = new StreamWriter(Path.Combine(csvDir, "positions.csv"), false);
             _positionsWriter.WriteLine("time,agentId,x,z,groupId");
         }
 
@@ -115,10 +120,10 @@ public class MetricsLogger : MonoBehaviour
     /// <summary>Grava config.csv (key,value) com os parâmetros da run. Chamado uma vez após BeginSession.</summary>
     public void WriteRunConfig(string csvText)
     {
-        if (!_open || string.IsNullOrEmpty(_runDir) || string.IsNullOrEmpty(csvText)) return;
-        File.WriteAllText(Path.Combine(_runDir, "config.csv"), csvText);
+        if (!_open || string.IsNullOrEmpty(_csvDir) || string.IsNullOrEmpty(csvText)) return;
+        File.WriteAllText(Path.Combine(_csvDir, "config.csv"), csvText);
         if (WRITE_EXCEL_COPY)
-            File.WriteAllText(Path.Combine(_runDir, "config_excel.csv"), ToExcel(csvText));
+            File.WriteAllText(Path.Combine(_csvDir, "config_excel.csv"), ToExcel(csvText));
     }
 
     private void WriteBoth(StreamWriter std, StreamWriter xl, string stdLine)
