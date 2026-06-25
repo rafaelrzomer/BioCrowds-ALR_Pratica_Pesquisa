@@ -7068,6 +7068,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   LOG_METRICS: 1
   FILE_NAME_PREFIX: biocrowds_metrics
+  WRITE_EXCEL_COPY: 1
+  LOG_POSITIONS: 1
 --- !u!4 &281094371
 Transform:
   m_ObjectHideFlags: 0
@@ -25693,6 +25695,55 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 861164922}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &866758176
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 866758178}
+  - component: {fileID: 866758177}
+  m_Layer: 0
+  m_Name: AgentInspectorHUD
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &866758177
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 866758176}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8e103f9b3d1af3a4ebdff9b3855c9014, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _world: {fileID: 0}
+  _active: 1
+  _toggleKey: 105
+  _pickRadiusPixels: 40
+  _aimHeight: 1
+  _camOffset: {x: 0, y: 14, z: -10}
+--- !u!4 &866758178
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 866758176}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 10.890105, y: 0.00022888184, z: 10.128915}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 22
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &869606865
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -37215,6 +37266,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   LOG_METRICS: 1
   FILE_NAME_PREFIX: biocrowds_metrics
+  WRITE_EXCEL_COPY: 1
+  LOG_POSITIONS: 1
 --- !u!4 &1272312502
 Transform:
   m_ObjectHideFlags: 0
@@ -48381,6 +48434,53 @@ Transform:
   - {fileID: 811072313}
   m_Father: {fileID: 17937740}
   m_RootOrder: 3
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1638317604
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1638317606}
+  - component: {fileID: 1638317605}
+  m_Layer: 0
+  m_Name: TimeController
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1638317605
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1638317604}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 574dcdfb70f5bd1408eed77d6167c824, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _pauseKey: 112
+  _slowerKey: 91
+  _fasterKey: 93
+  _resetKey: 92
+--- !u!4 &1638317606
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1638317604}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 10.890105, y: 0.00022888184, z: 10.128915}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 21
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &1638915859 stripped
 Transform:
