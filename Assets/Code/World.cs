@@ -884,10 +884,7 @@ namespace Biocrowds.Core
             _agentListPool.Push(list);
         }
 
-        /// <summary>
-        /// Monta o CSV de configuração da run (key,value) — gravado uma vez em config.csv.
-        /// Serve para rastrear de quais parâmetros cada run de métricas saiu (reprodutibilidade).
-        /// </summary>
+        // Monta o config.csv (key,value) da run — rastreia de quais parâmetros cada run saiu.
         private string BuildConfigCsv()
         {
             var ic = System.Globalization.CultureInfo.InvariantCulture;
@@ -942,12 +939,7 @@ namespace Biocrowds.Core
             }
         }
 
-        /// <summary>
-        /// Calcula e grava as métricas do eval cycle atual no CSV (via MetricsLogger).
-        /// Por grupo: tamanho, coesão (distância média ao centróide no plano XZ),
-        /// afinidade média e desvio padrão. Resumo global: nº de agentes, grupos, solos e trocas.
-        /// Usa _groupsScratch fresco; recalcula afinidade aqui para refletir a membership pós-migrações.
-        /// </summary>
+        // Calcula e grava as métricas do eval cycle (por grupo + resumo global) e o snapshot da HUD.
         private void RecordMetrics()
         {
             if (_groupsScratch == null)

@@ -45,11 +45,7 @@ public class MetricsHUD : MonoBehaviour
             _visible = !_visible;
     }
 
-    /// <summary>
-    /// Resolve a referência ao World automaticamente. Prioriza o World presente
-    /// na MESMA cena deste GameObject (caso haja múltiplas cenas carregadas);
-    /// se não achar na cena, cai para qualquer World ativo.
-    /// </summary>
+    // Auto-find do World: prioriza o da MESMA cena deste GameObject; senão, qualquer World ativo.
     private void TryFindWorld()
     {
         if (_world != null)

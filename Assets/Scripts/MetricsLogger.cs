@@ -41,10 +41,7 @@ public class MetricsLogger : MonoBehaviour
 
     public bool LoggingEnabled => LOG_METRICS;
 
-    /// <summary>
-    /// Cria o diretório do run e abre os CSVs, escrevendo os cabeçalhos. Chamado pelo World
-    /// ao carregar o mundo. Sem efeito se LOG_METRICS estiver desligado ou já houver sessão aberta.
-    /// </summary>
+    /// <summary>Cria o diretório do run e abre os CSVs com cabeçalhos. Chamado pelo World.</summary>
     public void BeginSession()
     {
         if (!LOG_METRICS || _open)
@@ -90,7 +87,6 @@ public class MetricsLogger : MonoBehaviour
         Debug.Log($"[Metrics] run dir:\n  {runDir}");
     }
 
-    /// <summary>Escreve uma linha de métricas de um grupo (long format).</summary>
     public void WriteGroupSample(float time, int groupId, int groupSize, float cohesion, float meanAffinity, float affinityStdDev, float meanTimeInGroup)
     {
         if (!_open) return;
@@ -100,7 +96,6 @@ public class MetricsLogger : MonoBehaviour
         WriteBoth(_groupsWriter, _groupsWriterXl, line);
     }
 
-    /// <summary>Escreve a linha-resumo global da amostra.</summary>
     public void WriteSummarySample(float time, int numAgents, int numGroups, int numSolo, int switchesInterval, int totalSwitches, bool groupChangesEnabled, int numStuck)
     {
         if (!_open) return;
@@ -110,7 +105,6 @@ public class MetricsLogger : MonoBehaviour
         WriteBoth(_summaryWriter, _summaryWriterXl, line);
     }
 
-    /// <summary>Escreve uma amostra de posição de um agente (para trajetória/densidade).</summary>
     public void WritePositionSample(float time, int agentId, float x, float z, int groupId)
     {
         if (_positionsWriter == null) return;
@@ -118,10 +112,7 @@ public class MetricsLogger : MonoBehaviour
             "{0:F3},{1},{2:F3},{3:F3},{4}", time, agentId, x, z, groupId));
     }
 
-    /// <summary>
-    /// Grava o config.csv (key,value) com os parâmetros da run. Chamado uma vez pelo World
-    /// logo após BeginSession. Também escreve config_excel.csv se WRITE_EXCEL_COPY.
-    /// </summary>
+    /// <summary>Grava config.csv (key,value) com os parâmetros da run. Chamado uma vez após BeginSession.</summary>
     public void WriteRunConfig(string csvText)
     {
         if (!_open || string.IsNullOrEmpty(_runDir) || string.IsNullOrEmpty(csvText)) return;
@@ -130,7 +121,6 @@ public class MetricsLogger : MonoBehaviour
             File.WriteAllText(Path.Combine(_runDir, "config_excel.csv"), ToExcel(csvText));
     }
 
-    /// <summary>Escreve a linha padrão e, se habilitado, a versão pt-BR.</summary>
     private void WriteBoth(StreamWriter std, StreamWriter xl, string stdLine)
     {
         std.WriteLine(stdLine);
@@ -138,17 +128,13 @@ public class MetricsLogger : MonoBehaviour
             xl.WriteLine(ToExcel(stdLine));
     }
 
-    /// <summary>
-    /// Converte uma linha do formato padrão (, e .) para o formato pt-BR (; e ,).
-    /// Ordem importa: troca primeiro as vírgulas-separador por ';', depois os pontos-decimal por ','.
-    /// (após a 1ª troca não sobra vírgula; só restam pontos decimais.)
-    /// </summary>
+    // padrão (, e .) -> pt-BR (; e ,). Ordem importa: vírgula->';' antes de ponto->',',
+    // pois após a 1ª troca não sobra vírgula, só pontos decimais.
     private static string ToExcel(string stdLine)
     {
         return stdLine.Replace(',', ';').Replace('.', ',');
     }
 
-    /// <summary>Fecha os arquivos. Chamado pelo World ao encerrar e nos callbacks do Unity.</summary>
     public void EndSession()
     {
         if (!_open) return;
