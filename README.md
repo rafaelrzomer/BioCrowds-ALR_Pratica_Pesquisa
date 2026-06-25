@@ -64,7 +64,9 @@ Assets/
 └── Scenes/                      # Cena do museu
 
 tools/
-└── plot_metrics.py             # Gera gráficos (PNG) dos CSVs de métricas (pandas+matplotlib)
+├── plot_metrics.py             # Gera gráficos (PNG) dos CSVs de métricas (pandas+matplotlib)
+├── build_xlsx.py               # Gera relatório .xlsx (Excel) com gráficos nativos, tabelas e fórmulas (pandas+xlsxwriter)
+└── report.bat                  # Windows: duplo-clique → roda build_xlsx + plot_metrics no run mais recente
 ```
 
 ---
@@ -167,7 +169,7 @@ Histórico detalhado por release em [`CHANGELOG.md`](CHANGELOG.md). Resumo das v
 | Status | Item | Notas |
 |:---:|---|---|
 | ⏳ | Definição e montagem do **cenário complexo** | 10ª reunião (11/06/2026). Cenário de demonstração que evidencie evolução de grupos por afinidade. Base para os experimentos do artigo. |
-| ✅ | Exportação de dados (CSV) | `MetricsLogger.cs` grava dois CSVs por run em `Metrics/` na **raiz do projeto** (no Editor; em build cai na pasta do executável): **groups** (time, groupId, groupSize, coesão ao centróide, afinidade média, desvio-padrão de afinidade) e **summary** (time, nº de agentes/grupos/solos, trocas por intervalo e acumuladas). Amostra a cada eval cycle de grupo. Pasta `Metrics/` ignorada pelo git. |
+| ✅ | Exportação de dados (CSV) | `MetricsLogger.cs` cria **um diretório por run** em `Metrics/<prefix>_<timestamp>/` na **raiz do projeto** (no Editor; em build, pasta do executável), com `groups.csv` (time, groupId, groupSize, coesão, afinidade média, desvio, tempo médio em grupo) e `summary.csv` (time, agentes/grupos/solos, trocas, flag `ALLOW_GROUP_CHANGES`). Também grava cópias `*_excel.csv` no formato pt-BR (`;` e `,`) p/ abrir no Excel com duplo-clique. Amostra a cada eval cycle. Pasta `Metrics/` ignorada pelo git. |
  
 ### 📝 Artigo (10ª reunião — 11/06/2026)
 
@@ -190,7 +192,8 @@ Histórico detalhado por release em [`CHANGELOG.md`](CHANGELOG.md). Resumo das v
 |:---:|---|---|
 | 🚧 | Cenários múltiplos para experimentos | Cenas `Cena#6A`/`Cena#6B`/`Sociograma` já criadas em `Assets/Scenes/CenasTeste/`. Falta variar parâmetros de forma controlada (poucos vs. muitos agentes, afinidades polarizadas vs. uniformes, layout aberto vs. corredor), gravar vídeo e anotar métricas. Inclui o **cenário complexo** da 10ª reunião. **Adicionar `MetricsLogger` a cada cena.** |
 | ✅ | Métricas para os experimentos | Implementadas no `MetricsLogger.cs`: **coesão de grupo** (distância média ao centróide), **trocas de grupo** (intervalo + acumuladas), **tamanho dos grupos**, **nº de grupos/solos**, **desvio-padrão de afinidade** (proxy de coesão social), **tempo médio em grupo** (`timeInGroup` por agente, agregado por grupo) e a flag **`ALLOW_GROUP_CHANGES`** (0/1) no summary. |
-| ✅ | Gráficos a partir dos CSVs | `tools/plot_metrics.py` (pandas+matplotlib): localiza o run mais recente em `Metrics/`, gera PNGs (população, trocas, coesão/afinidade/tamanho/tempo por grupo) em `Metrics/plots/<run>/`. Uso: `python tools/plot_metrics.py`. |
+| ✅ | Gráficos a partir dos CSVs | `tools/plot_metrics.py` (pandas+matplotlib): localiza o run mais recente em `Metrics/`, gera PNGs + `dashboard.png` (população, trocas, coesão/afinidade/tamanho/tempo por grupo) em `Metrics/<run>/plots/`. Uso: `python tools/plot_metrics.py` (opções `--run`, `--dpi`). |
+| ✅ | Relatório Excel (.xlsx) | `tools/build_xlsx.py` (pandas+xlsxwriter): monta `Metrics/<run>/relatorio.xlsx` com tabelas formatadas, **gráficos nativos do Excel** (editáveis), **fórmulas** (KPIs MAX/AVERAGE) e uma aba por métrica de grupo (pivot tempo×grupo). Uso: `python tools/build_xlsx.py`. |
 | 🚧 | Sociograma | Cena `Sociograma.unity` criada (merge da `main`). Falta reproduzir o sociograma do trabalho original (Musse & Thalmann) para os resultados do artigo. |
 | ✅ | HUD runtime de métricas | `MetricsHUD.cs` (OnGUI, tecla `M`): painel ao vivo lendo o snapshot público do `World` (tempo, nº de agentes/grupos/solos, trocas total+ciclo, e por grupo tamanho/coesão/afinidade±desvio). Atualiza a cada eval cycle, independente do CSV. |
 | 📊 | Bateria de testes de variação | Caderno 14/05/2026 — *"dois grupos com muita afinidade e dois grupos com afinidades muito distantes, testar variação de comportamentos"*. |

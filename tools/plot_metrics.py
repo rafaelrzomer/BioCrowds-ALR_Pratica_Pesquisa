@@ -20,7 +20,6 @@ Requisitos: pandas, matplotlib  ->  pip install pandas matplotlib
 """
 
 import argparse
-import glob
 import os
 import sys
 
@@ -108,6 +107,13 @@ def _plot_switches(ax, df):
         ax.bar(df["time"], df["switchesInterval"], width=0.2,
                color="#d62728", alpha=0.45, label="Por intervalo")
     style_axis(ax, "Trocas de grupo", "Tempo (s)", "Trocas", integer_y=True)
+    # eixo sempre a partir de 0 (evita ticks negativos quando a serie e constante 0)
+    ymax = max(float(df["totalSwitches"].max()), 1.0)
+    ax.set_ylim(0, ymax * 1.15)
+    if ymax <= 1.0 and float(df["totalSwitches"].max()) == 0.0:
+        ax.text(0.5, 0.5, "nenhuma troca de grupo nesta run",
+                transform=ax.transAxes, ha="center", va="center",
+                color="#999999", fontsize=11, style="italic")
     ax.legend(loc="upper left")
 
 
@@ -165,8 +171,11 @@ def plot_groups(df, out_dir, run, dpi):
         print("[aviso] groups.csv vazio (nenhum grupo formado na run); pulando graficos por grupo.")
         return
 
+    # NOTA: a coluna do CSV chama-se "cohesion" mas mede DISPERSAO (dist. media ao
+    # centroide): valor MAIOR = grupo mais espalhado = MENOS coeso. Rotulamos como
+    # "Dispersao (menor = mais coeso)" para nao inverter a leitura.
     especs = [
-        ("cohesion", "Coesao (dist. media ao centroide)", "groups_coesao.png", False),
+        ("cohesion", "Dispersao (menor = mais coeso)", "groups_dispersao.png", False),
         ("groupSize", "Tamanho do grupo", "groups_tamanho.png", True),
         ("meanTimeInGroup", "Tempo medio no grupo (s)", "groups_tempo.png", False),
     ]
@@ -203,7 +212,7 @@ def plot_dashboard(df_summary, df_groups, out_dir, run, dpi):
 
     if df_groups is not None and not df_groups.empty and "cohesion" in df_groups.columns:
         n = _plot_group_lines(axes[1, 0], df_groups, "cohesion")
-        style_axis(axes[1, 0], "Coesao por grupo", "Tempo (s)", "Dist. media ao centroide")
+        style_axis(axes[1, 0], "Dispersao por grupo (menor = mais coeso)", "Tempo (s)", "Dist. media ao centroide")
         legend_groups(axes[1, 0], n)
     else:
         axes[1, 0].set_axis_off()
@@ -227,11 +236,16 @@ def default_metrics_dir():
 
 
 def find_latest_run(metrics_dir):
-    summaries = glob.glob(os.path.join(metrics_dir, "*_summary.csv"))
-    if not summaries:
+    """Cada run e um subdiretorio de Metrics/ contendo summary.csv. Retorna o mais recente."""
+    candidates = []
+    for name in os.listdir(metrics_dir):
+        sub = os.path.join(metrics_dir, name)
+        if os.path.isdir(sub) and os.path.isfile(os.path.join(sub, "summary.csv")):
+            candidates.append(sub)
+    if not candidates:
         return None
-    latest = max(summaries, key=os.path.getmtime)
-    return os.path.basename(latest)[: -len("_summary.csv")]
+    latest = max(candidates, key=os.path.getmtime)
+    return os.path.basename(latest)
 
 
 def save(fig, out_dir, fname, dpi):
@@ -255,14 +269,15 @@ def main():
 
     run = args.run or find_latest_run(metrics_dir)
     if not run:
-        sys.exit(f"Nenhum *_summary.csv encontrado em {metrics_dir}")
+        sys.exit(f"Nenhum run (subdiretorio com summary.csv) encontrado em {metrics_dir}")
 
-    summary_path = os.path.join(metrics_dir, f"{run}_summary.csv")
-    groups_path = os.path.join(metrics_dir, f"{run}_groups.csv")
+    run_dir = os.path.join(metrics_dir, run)
+    summary_path = os.path.join(run_dir, "summary.csv")
+    groups_path = os.path.join(run_dir, "groups.csv")
     if not os.path.isfile(summary_path):
         sys.exit(f"Arquivo nao encontrado: {summary_path}")
 
-    out_dir = args.out or os.path.join(metrics_dir, "plots", run)
+    out_dir = args.out or os.path.join(run_dir, "plots")
     os.makedirs(out_dir, exist_ok=True)
 
     print(f"Run: {run}")

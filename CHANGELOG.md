@@ -18,7 +18,9 @@ Convenções: `valor antigo ⇒ valor novo` para ajustes numéricos. 🆕 novo �
 - 🆕 `.gitignore`: `/[Mm]etrics/` — CSVs gerados não vão para o git.
 - 🆕 Métrica **tempo médio em grupo**: `Agent.timeInGroup` (incrementado em `World.Update` quando `HasGroup`, zerado em `SwitchGroup` e ao formar grupo novo). Agregado por grupo em `RecordMetrics` → coluna `meanTimeInGroup` no `*_groups.csv` + linha por grupo na HUD.
 - 🆕 Flag **`ALLOW_GROUP_CHANGES`** exposta (`World.GroupChangesAllowed`): coluna `groupChangesEnabled` (0/1) no `*_summary.csv` + estado ON/OFF na HUD.
-- 🆕 `tools/plot_metrics.py` (pandas+matplotlib): gera PNGs do run mais recente em `Metrics/plots/<run>/` (população, trocas, coesão/afinidade/tamanho/tempo por grupo).
+- 🆕 `tools/plot_metrics.py` (pandas+matplotlib): gera PNGs + `dashboard.png` do run mais recente em `Metrics/<run>/plots/` (população, trocas, coesão/afinidade/tamanho/tempo por grupo). Tema consistente, step plots, banda ±desvio na afinidade, opções `--run`/`--dpi`.
+- 🔧 `MetricsLogger`: **um diretório por run** (`Metrics/<prefix>_<timestamp>/` com `groups.csv`/`summary.csv`) — não mistura runs. Cópias `*_excel.csv` no formato pt-BR (`;` separador, `,` decimal) via flag `WRITE_EXCEL_COPY` → abrem no Excel pt-BR com duplo-clique, sem quebrar o pipeline pandas (que lê os `.csv` padrão).
+- 🆕 `tools/build_xlsx.py` (pandas+xlsxwriter): gera `Metrics/<run>/relatorio.xlsx` — tabelas formatadas, **gráficos nativos do Excel** (linha, editáveis), **fórmulas** de KPI (MAX/AVERAGE) e uma aba por métrica de grupo (pivot tempo×grupo) + aba de dados crus.
 
 > ℹ️ Setup da HUD: adicionar o componente `MetricsHUD` a um GameObject da `Museu.unity` (campo `_world` via Inspector ou auto-find).
 
