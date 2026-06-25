@@ -96,7 +96,11 @@ public class MetricsHUD : MonoBehaviour
         _sb.AppendLine($"Agentes: {_world.MetricNumAgents}");
         _sb.AppendLine($"Grupos: {_world.MetricNumGroups}   Solos: {_world.MetricNumSolo}");
         _sb.AppendLine($"Trocas: {_world.MetricTotalSwitches} (ciclo: {_world.MetricSwitchesInterval})");
+        _sb.AppendLine($"Travados (jam): {_world.MetricNumStuck}");
         _sb.AppendLine($"Dinâmica de grupos: {(_world.GroupChangesAllowed ? "<color=#7CFC00>ON</color>" : "<color=#FF6B6B>OFF</color>")}");
+        string seedTxt = _world.UsesSeed ? _world.RandomSeed.ToString() : "off";
+        string maxTxt = _world.MaxAgents <= 0 ? "ilim." : _world.MaxAgents.ToString("0");
+        _sb.AppendLine($"<color=#AAAAAA>seed: {seedTxt}   maxAg: {maxTxt}</color>");
 
         if (_showPerGroup)
         {

@@ -147,7 +147,7 @@ def build(run_dir, out_path):
 
     cols = {name: i for i, name in enumerate(summary.columns)}
     # grafico 1: populacao
-    series_pop = [(cols[c], c) for c in ("numAgents", "numGroups", "numSolo") if c in cols]
+    series_pop = [(cols[c], c) for c in ("numAgents", "numGroups", "numSolo", "numStuck") if c in cols]
     add_line_chart(wb, ws, "Resumo", "Populacao ao longo do tempo", "Tempo (s)", "Contagem",
                    cols["time"], series_pop, n_rows, table_row, anchor="J3", y_min=0)
     # grafico 2: trocas (eixo a partir de 0 — fica reto em 0 se nao houver trocas)
@@ -205,6 +205,12 @@ def build(run_dir, out_path):
     # =================== ABA DADOS (raw groups) ===================
     if not groups.empty:
         groups.to_excel(wb_engine, sheet_name="DadosGrupos", index=False)
+
+    # =================== ABA CONFIG (parametros da run) ===================
+    config_path = os.path.join(run_dir, "config.csv")
+    if os.path.isfile(config_path):
+        cfg = pd.read_csv(config_path)
+        cfg.to_excel(wb_engine, sheet_name="Config", index=False)
 
     wb_engine.close()
 

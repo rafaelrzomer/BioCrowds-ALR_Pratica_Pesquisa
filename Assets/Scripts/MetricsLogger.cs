@@ -33,6 +33,7 @@ public class MetricsLogger : MonoBehaviour
     // writers do formato pt-BR (; e ,) — só se WRITE_EXCEL_COPY
     private StreamWriter _groupsWriterXl;
     private StreamWriter _summaryWriterXl;
+    private string _runDir;
     private bool _open;
 
     public bool LoggingEnabled => LOG_METRICS;
@@ -57,9 +58,10 @@ public class MetricsLogger : MonoBehaviour
         // um diretório por run — não mistura arquivos de runs diferentes
         string runDir = Path.Combine(projectRoot, "Metrics", runName);
         Directory.CreateDirectory(runDir);
+        _runDir = runDir;
 
         const string groupsHeader = "time,groupId,groupSize,cohesion,meanAffinity,affinityStdDev,meanTimeInGroup";
-        const string summaryHeader = "time,numAgents,numGroups,numSolo,switchesInterval,totalSwitches,groupChangesEnabled";
+        const string summaryHeader = "time,numAgents,numGroups,numSolo,switchesInterval,totalSwitches,groupChangesEnabled,numStuck";
 
         _groupsWriter = new StreamWriter(Path.Combine(runDir, "groups.csv"), false);
         _summaryWriter = new StreamWriter(Path.Combine(runDir, "summary.csv"), false);
@@ -90,13 +92,25 @@ public class MetricsLogger : MonoBehaviour
     }
 
     /// <summary>Escreve a linha-resumo global da amostra.</summary>
-    public void WriteSummarySample(float time, int numAgents, int numGroups, int numSolo, int switchesInterval, int totalSwitches, bool groupChangesEnabled)
+    public void WriteSummarySample(float time, int numAgents, int numGroups, int numSolo, int switchesInterval, int totalSwitches, bool groupChangesEnabled, int numStuck)
     {
         if (!_open) return;
         string line = string.Format(CultureInfo.InvariantCulture,
-            "{0:F3},{1},{2},{3},{4},{5},{6}",
-            time, numAgents, numGroups, numSolo, switchesInterval, totalSwitches, groupChangesEnabled ? 1 : 0);
+            "{0:F3},{1},{2},{3},{4},{5},{6},{7}",
+            time, numAgents, numGroups, numSolo, switchesInterval, totalSwitches, groupChangesEnabled ? 1 : 0, numStuck);
         WriteBoth(_summaryWriter, _summaryWriterXl, line);
+    }
+
+    /// <summary>
+    /// Grava o config.csv (key,value) com os parâmetros da run. Chamado uma vez pelo World
+    /// logo após BeginSession. Também escreve config_excel.csv se WRITE_EXCEL_COPY.
+    /// </summary>
+    public void WriteRunConfig(string csvText)
+    {
+        if (!_open || string.IsNullOrEmpty(_runDir) || string.IsNullOrEmpty(csvText)) return;
+        File.WriteAllText(Path.Combine(_runDir, "config.csv"), csvText);
+        if (WRITE_EXCEL_COPY)
+            File.WriteAllText(Path.Combine(_runDir, "config_excel.csv"), ToExcel(csvText));
     }
 
     /// <summary>Escreve a linha padrão e, se habilitado, a versão pt-BR.</summary>

@@ -20,7 +20,11 @@ Convenções: `valor antigo ⇒ valor novo` para ajustes numéricos. 🆕 novo �
 - 🆕 Flag **`ALLOW_GROUP_CHANGES`** exposta (`World.GroupChangesAllowed`): coluna `groupChangesEnabled` (0/1) no `*_summary.csv` + estado ON/OFF na HUD.
 - 🆕 `tools/plot_metrics.py` (pandas+matplotlib): gera PNGs + `dashboard.png` do run mais recente em `Metrics/<run>/plots/` (população, trocas, coesão/afinidade/tamanho/tempo por grupo). Tema consistente, step plots, banda ±desvio na afinidade, opções `--run`/`--dpi`.
 - 🔧 `MetricsLogger`: **um diretório por run** (`Metrics/<prefix>_<timestamp>/` com `groups.csv`/`summary.csv`) — não mistura runs. Cópias `*_excel.csv` no formato pt-BR (`;` separador, `,` decimal) via flag `WRITE_EXCEL_COPY` → abrem no Excel pt-BR com duplo-clique, sem quebrar o pipeline pandas (que lê os `.csv` padrão).
-- 🆕 `tools/build_xlsx.py` (pandas+xlsxwriter): gera `Metrics/<run>/relatorio.xlsx` — tabelas formatadas, **gráficos nativos do Excel** (linha, editáveis), **fórmulas** de KPI (MAX/AVERAGE) e uma aba por métrica de grupo (pivot tempo×grupo) + aba de dados crus.
+- 🆕 `tools/build_xlsx.py` (pandas+xlsxwriter): gera `Metrics/<run>/relatorio.xlsx` — tabelas formatadas, **gráficos nativos do Excel** (linha, editáveis), **fórmulas** de KPI (MAX/AVERAGE), uma aba por métrica de grupo (pivot tempo×grupo), aba de dados crus e aba **Config**.
+- 🆕 Métrica de **jam** (`numStuck`): conta agentes que não estão esperando mas estão com velocidade `< STUCK_SPEED_THRESHOLD` (≈parados) → coluna no summary, `World.MetricNumStuck`, linha "Travados" na HUD e no gráfico de população. Quantifica gridlock/densidade.
+- 🆕 **`config.csv` por run**: `World.BuildConfigCsv()` grava seed, `MAX_AGENTS`, thresholds e demais parâmetros (`MetricsLogger.WriteRunConfig`); HUD exibe seed + maxAg. Rastreia de quais parâmetros cada run saiu.
+- 🆕 `tools/compare_runs.py`: sobrepõe uma métrica do summary (ex.: `numStuck`, `numGroups`, `totalSwitches`) de várias runs num gráfico (`Metrics/comparisons/`) — base para comparar `ALLOW_GROUP_CHANGES` on×off, seeds, densidades.
+- 🔧 Gráficos: eixo de "Trocas" a partir de 0 (com nota quando não há trocas); "coesão" rotulada como **"Dispersão (menor = mais coeso)"** (coluna CSV segue `cohesion`).
 
 > ℹ️ Setup da HUD: adicionar o componente `MetricsHUD` a um GameObject da `Museu.unity` (campo `_world` via Inspector ou auto-find).
 

@@ -186,9 +186,20 @@ namespace Biocrowds.Core
         public int MetricNumSolo { get; private set; }
         public int MetricSwitchesInterval { get; private set; }
         public int MetricTotalSwitches { get; private set; }
+        public int MetricNumStuck { get; private set; } // agentes "travados" (vel ~0 sem estar esperando)
+
+        // velocidade (m/s) abaixo da qual um agente que NÃO está esperando conta como travado (jam)
+        [SerializeField] private float STUCK_SPEED_THRESHOLD = 0.05f;
 
         /// <summary>Estado do master switch das dinâmicas de grupo (lido pela HUD e gravado no CSV).</summary>
         public bool GroupChangesAllowed => ALLOW_GROUP_CHANGES;
+
+        // --- getters de configuração (HUD + config.csv) ---
+        public bool UsesSeed => USE_SEED;
+        public int RandomSeed => RANDOM_SEED;
+        public float MaxAgents => MAX_AGENTS;
+        public float AffinitySwitchThreshold => AFFINITY_SWITCH_THRESHOLD;
+        public float GroupProximityDistance => GROUP_PROXIMITY_DISTANCE;
 
         /// <summary>
         /// Finds and returns the leader agent of the specified group
@@ -307,7 +318,10 @@ namespace Biocrowds.Core
             if (_metricsLogger == null)
                 _metricsLogger = FindObjectOfType<MetricsLogger>();
             if (_metricsLogger != null)
+            {
                 _metricsLogger.BeginSession();
+                _metricsLogger.WriteRunConfig(BuildConfigCsv()); // rastreabilidade: parâmetros da run
+            }
 
             _isReady = true;
         }
@@ -845,6 +859,35 @@ namespace Biocrowds.Core
             _agentListPool.Push(list);
         }
 
+        /// <summary>
+        /// Monta o CSV de configuração da run (key,value) — gravado uma vez em config.csv.
+        /// Serve para rastrear de quais parâmetros cada run de métricas saiu (reprodutibilidade).
+        /// </summary>
+        private string BuildConfigCsv()
+        {
+            var ic = System.Globalization.CultureInfo.InvariantCulture;
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("key,value");
+            void Add(string k, string v) => sb.AppendLine(k + "," + v);
+
+            Add("useSeed", USE_SEED ? "1" : "0");
+            Add("randomSeed", RANDOM_SEED.ToString(ic));
+            Add("maxAgents", MAX_AGENTS.ToString(ic));
+            Add("simulationTimeStep", SIMULATION_TIME_STEP.ToString(ic));
+            Add("agentRadius", AGENT_RADIUS.ToString(ic));
+            Add("auxinDensity", AUXIN_DENSITY.ToString(ic));
+            Add("allowGroupChanges", ALLOW_GROUP_CHANGES ? "1" : "0");
+            Add("maxGroups", MAX_GROUPS.ToString(ic));
+            Add("groupProximityDistance", GROUP_PROXIMITY_DISTANCE.ToString(ic));
+            Add("groupSwitchGracePeriod", GROUP_SWITCH_GRACE_PERIOD.ToString(ic));
+            Add("affinitySwitchThreshold", AFFINITY_SWITCH_THRESHOLD.ToString(ic));
+            Add("leaderMinTenure", LEADER_MIN_TENURE.ToString(ic));
+            Add("groupEvalInterval", GROUP_EVAL_INTERVAL.ToString(ic));
+            Add("waitTimeMultiplier", WAIT_TIME_MULTIPLIER.ToString(ic));
+            Add("stuckSpeedThreshold", STUCK_SPEED_THRESHOLD.ToString(ic));
+            return sb.ToString();
+        }
+
         private void ClearGroupsScratch()
         {
             if (_groupsScratch == null) return;
@@ -944,10 +987,15 @@ namespace Biocrowds.Core
             }
 
             int numSolo = 0;
+            int numStuck = 0;
+            float stuckSqr = STUCK_SPEED_THRESHOLD * STUCK_SPEED_THRESHOLD;
             foreach (Agent a in _agents)
             {
                 if (!a.HasGroup)
                     numSolo++;
+                // "travado" = quer andar (não está esperando) mas está praticamente parado
+                if (!a.isWaiting && a._velocity.sqrMagnitude < stuckSqr)
+                    numStuck++;
             }
 
             // publica o snapshot lido pela HUD
@@ -957,9 +1005,10 @@ namespace Biocrowds.Core
             MetricNumSolo = numSolo;
             MetricSwitchesInterval = _switchesThisCycle;
             MetricTotalSwitches = _totalSwitches;
+            MetricNumStuck = numStuck;
 
             if (logCsv)
-                _metricsLogger.WriteSummarySample(_simTime, _agents.Count, numGroups, numSolo, _switchesThisCycle, _totalSwitches, ALLOW_GROUP_CHANGES);
+                _metricsLogger.WriteSummarySample(_simTime, _agents.Count, numGroups, numSolo, _switchesThisCycle, _totalSwitches, ALLOW_GROUP_CHANGES, numStuck);
         }
 
         private void EvaluateGroupProximityAndSwitches()

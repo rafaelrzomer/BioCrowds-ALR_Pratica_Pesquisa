@@ -66,6 +66,7 @@ Assets/
 tools/
 ├── plot_metrics.py             # Gera gráficos (PNG) dos CSVs de métricas (pandas+matplotlib)
 ├── build_xlsx.py               # Gera relatório .xlsx (Excel) com gráficos nativos, tabelas e fórmulas (pandas+xlsxwriter)
+├── compare_runs.py             # Sobrepõe uma métrica (ex.: numStuck, numGroups) de várias runs num gráfico
 └── report.bat                  # Windows: duplo-clique → roda build_xlsx + plot_metrics no run mais recente
 ```
 
@@ -191,11 +192,14 @@ Histórico detalhado por release em [`CHANGELOG.md`](CHANGELOG.md). Resumo das v
 | Status | Item | Notas |
 |:---:|---|---|
 | 🚧 | Cenários múltiplos para experimentos | Cenas `Cena#6A`/`Cena#6B`/`Sociograma` já criadas em `Assets/Scenes/CenasTeste/`. Falta variar parâmetros de forma controlada (poucos vs. muitos agentes, afinidades polarizadas vs. uniformes, layout aberto vs. corredor), gravar vídeo e anotar métricas. Inclui o **cenário complexo** da 10ª reunião. **Adicionar `MetricsLogger` a cada cena.** |
-| ✅ | Métricas para os experimentos | Implementadas no `MetricsLogger.cs`: **coesão de grupo** (distância média ao centróide), **trocas de grupo** (intervalo + acumuladas), **tamanho dos grupos**, **nº de grupos/solos**, **desvio-padrão de afinidade** (proxy de coesão social), **tempo médio em grupo** (`timeInGroup` por agente, agregado por grupo) e a flag **`ALLOW_GROUP_CHANGES`** (0/1) no summary. |
-| ✅ | Gráficos a partir dos CSVs | `tools/plot_metrics.py` (pandas+matplotlib): localiza o run mais recente em `Metrics/`, gera PNGs + `dashboard.png` (população, trocas, coesão/afinidade/tamanho/tempo por grupo) em `Metrics/<run>/plots/`. Uso: `python tools/plot_metrics.py` (opções `--run`, `--dpi`). |
-| ✅ | Relatório Excel (.xlsx) | `tools/build_xlsx.py` (pandas+xlsxwriter): monta `Metrics/<run>/relatorio.xlsx` com tabelas formatadas, **gráficos nativos do Excel** (editáveis), **fórmulas** (KPIs MAX/AVERAGE) e uma aba por métrica de grupo (pivot tempo×grupo). Uso: `python tools/build_xlsx.py`. |
+| ✅ | Métricas para os experimentos | Implementadas no `MetricsLogger.cs`: **coesão de grupo** (distância média ao centróide — coluna CSV `cohesion`; **rotulada nos gráficos como _Dispersão_: menor = mais coeso**), **trocas de grupo** (intervalo + acumuladas), **tamanho dos grupos**, **nº de grupos/solos**, **desvio-padrão de afinidade** (proxy de coesão social), **tempo médio em grupo** (`timeInGroup` por agente, agregado por grupo) e a flag **`ALLOW_GROUP_CHANGES`** (0/1) no summary. |
+| ✅ | Gráficos a partir dos CSVs | `tools/plot_metrics.py` (pandas+matplotlib): localiza o run mais recente em `Metrics/`, gera PNGs + `dashboard.png` (população, trocas, dispersão/afinidade/tamanho/tempo por grupo) em `Metrics/<run>/plots/`. Uso: `python tools/plot_metrics.py` (opções `--run`, `--dpi`). |
+| ✅ | Relatório Excel (.xlsx) | `tools/build_xlsx.py` (pandas+xlsxwriter): monta `Metrics/<run>/relatorio.xlsx` com tabelas formatadas, **gráficos nativos do Excel** (editáveis), **fórmulas** (KPIs MAX/AVERAGE), aba por métrica de grupo (pivot tempo×grupo) e aba **Config** (parâmetros da run). Uso: `python tools/build_xlsx.py`. |
+| ✅ | Métrica de jam (agentes travados) | `numStuck` no summary + HUD + linha "Travados" no gráfico de população: conta agentes que **não estão esperando** mas estão com velocidade `< STUCK_SPEED_THRESHOLD` (≈parados). Quantifica gridlock/densidade. |
+| ✅ | Rastreabilidade de parâmetros | `config.csv` por run (`Metrics/<run>/`) com seed, `MAX_AGENTS`, thresholds etc.; HUD mostra seed + maxAg. Liga qual run veio de quais parâmetros. |
+| ✅ | Comparação entre runs | `tools/compare_runs.py`: sobrepõe uma métrica do summary (ex.: `numStuck`, `numGroups`, `totalSwitches`) de várias runs num gráfico → `Metrics/comparisons/`. Uso: `python tools/compare_runs.py --metric numStuck --last 3`. |
 | 🚧 | Sociograma | Cena `Sociograma.unity` criada (merge da `main`). Falta reproduzir o sociograma do trabalho original (Musse & Thalmann) para os resultados do artigo. |
-| ✅ | HUD runtime de métricas | `MetricsHUD.cs` (OnGUI, tecla `M`): painel ao vivo lendo o snapshot público do `World` (tempo, nº de agentes/grupos/solos, trocas total+ciclo, e por grupo tamanho/coesão/afinidade±desvio). Atualiza a cada eval cycle, independente do CSV. |
+| ✅ | HUD runtime de métricas | `MetricsHUD.cs` (OnGUI, tecla `M`): painel ao vivo lendo o snapshot público do `World` (tempo, nº de agentes/grupos/solos, trocas total+ciclo, **agentes travados**, **seed/maxAg**, e por grupo tamanho/coesão/afinidade±desvio). Atualiza a cada eval cycle, independente do CSV. |
 | 📊 | Bateria de testes de variação | Caderno 14/05/2026 — *"dois grupos com muita afinidade e dois grupos com afinidades muito distantes, testar variação de comportamentos"*. |
 | 📊 | Métricas inspiradas em WebCrowds | Density Map, Trajectories Map, Simulation Time. |
 | 📊 | Interface runtime para ditar grupos e comportamentos | Caderno 01/04/2026. Painel no Play exibindo/editando `groupId`, `affinity`, `dominance`, `isGroupLeader`. |
@@ -210,10 +214,22 @@ Histórico detalhado por release em [`CHANGELOG.md`](CHANGELOG.md). Resumo das v
 |:---:|---|---|
 | 🔬 | Pontos de densidade e caminhos preferenciais | Caderno 01/04/2026 — *"Pontos de densidade, caminhos específicos (caminhos futuros)"*. Identificar gargalos no cenário do museu. |
 | 🔬 | Aplicação a eventos culturais / museus | Caderno 01/04/2026 — objetivo aplicado. `SpawnAreas` e `Goals` como salas/corredores/saídas; evitar aglomerações e preservar liberdade de movimento. |
-| 🔬 | Comparação quantitativa `ALLOW_GROUP_CHANGES` on/off | Validar empiricamente o impacto da dinâmica de grupo. Estado já gravado no CSV summary (coluna `groupChangesEnabled`) e exibido na HUD — falta rodar e comparar as duas baterias. |
+| 🔬 | Comparação quantitativa `ALLOW_GROUP_CHANGES` on/off | Validar empiricamente o impacto da dinâmica de grupo. Estado gravado no CSV (`groupChangesEnabled`) + HUD; `tools/compare_runs.py` já sobrepõe runs on×off. Falta rodar as duas baterias e escrever a análise. |
 | 🔬 | Otimização O(N²) → O(N log N) | Loops de proximidade via grid espacial ou KD-tree (relacionado ao ponto de frame rate). |
 | 🔬 | `POISSON_DISK_SAMPLING` spawner | Enum em `SimulationConfiguration.cs` declarado, mas sem classe concreta. |
 | 🔬 | Personalidade OCEAN (Knob et al.) | Adicionar `openness, conscientiousness, extraversion, agreeableness, neuroticism` ao `Agent`. Modular o peso $w_k$ por Extraversion: $w'_{k,i} = \delta_i \cdot w_{k,i} \cdot E_i + (1 - \delta_i) \cdot (1 - E_i)$. |
+
+### ⚠️ Limitações conhecidas das dinâmicas de grupo (investigado em 25/06/2026)
+
+> **Importante para o artigo:** as métricas mostram que, com os parâmetros atuais, **a troca de grupo quase nunca acontece** (`totalSwitches → 0`) e **os grupos ficam sempre com 2 agentes**. Não é bug de código — é consequência do desenho atual do modelo. **Não alterar sem decisão do grupo.**
+
+| Sintoma | Causa raiz | Onde |
+|---|---|---|
+| **Troca de grupo ≈ 0** (`totalSwitches` reto em zero) | `ShouldAgentSwitchGroup` exige que o outro grupo seja um encaixe **estritamente melhor** (`newDiff < currentDiff`). Mas `currentAvg` **inclui o próprio agente**: num grupo de 2, o agente é "metade" da própria média → `currentDiff = |a−b|/2` é minúsculo → praticamente impossível outro grupo ser melhor. | `World.ShouldAgentSwitchGroup` |
+| **Grupos sempre de tamanho 2** | `EvaluateSoloAgentsMeetings` (parear 2 solos) roda **antes** de `EvaluateSoloAgentsJoiningGroups`; com `GROUP_PROXIMITY_DISTANCE = 15`, solos viram par antes de engrossar grupos. Entrar em grupo exige `≥ 2` membros perto (restritivo). **Não existe merge de grupos.** | `World.Update` (ordem) |
+| **"Coesão" parece invertida** | A métrica é **distância ao centróide** (maior = mais espalhado). Gráficos/relatório rotulam como **"Dispersão (menor = mais coeso)"**. | scripts `tools/` |
+
+**Impacto nas perguntas de pesquisa (abaixo):** as perguntas 2 e 3 dependem de a troca ocorrer. Para a troca emergir, seria preciso (a decidir com o grupo): excluir o próprio agente da média ao medir `currentDiff`, reordenar/afrouxar a entrada em grupos, baixar `AFFINITY_SWITCH_THRESHOLD`, e/ou adicionar fusão de grupos. **Nenhuma dessas mudanças foi aplicada** — apenas documentada.
 
 ### Questões de pesquisa norteadoras (Caderno, 01/04/2026)
 

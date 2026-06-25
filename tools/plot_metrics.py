@@ -94,8 +94,11 @@ def _plot_population(ax, df):
             color="#2ca02c", label="Grupos")
     ax.plot(df["time"], df["numSolo"], drawstyle="steps-post",
             color="#ff7f0e", label="Solos")
+    if "numStuck" in df.columns:
+        ax.plot(df["time"], df["numStuck"], drawstyle="steps-post",
+                color="#9467bd", label="Travados", linestyle="--")
     style_axis(ax, "Populacao ao longo do tempo", "Tempo (s)", "Contagem", integer_y=True)
-    ax.legend(loc="best", ncol=3)
+    ax.legend(loc="best", ncol=4)
 
 
 def _plot_switches(ax, df):
