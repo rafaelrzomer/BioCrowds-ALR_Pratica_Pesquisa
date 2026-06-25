@@ -41,6 +41,15 @@ namespace Biocrowds.Core
 
         [SerializeField] private float GOAL_DISTANCE_THRESHOLD = 1.0f;
 
+        // controle de duração da run
+        [Header("Run Control")]
+        [Tooltip("Duração da run em segundos de SIMULAÇÃO. 0 = ilimitado. " +
+                 "Ao atingir, a sim para, fecha as métricas (CSV) e, se marcado, gera os gráficos.")]
+        [SerializeField] private float RUN_DURATION = 0f;
+        [Tooltip("Ao fim da run (RUN_DURATION), dispara os scripts Python (gráficos PNG + xlsx). " +
+                 "Requer Python no PATH. Só roda no Editor / standalone com Python instalado.")]
+        [SerializeField] private bool AUTO_GENERATE_REPORTS = true;
+
         // group interaction settings
         [Header("Group Settings")]
         [SerializeField] private bool ALLOW_GROUP_CHANGES = true; // master switch for all group changes
@@ -227,6 +236,7 @@ namespace Biocrowds.Core
 
         //max auxins on the ground
         private bool _isReady;
+        private bool _runFinished;  // true após RUN_DURATION ser atingido (congela a sim)
 
         private void Awake()
         {
@@ -241,6 +251,7 @@ namespace Biocrowds.Core
             SimPaused = false;
             SimSpeed = 1f;
             _simAccumulator = 0f;
+            _runFinished = false;
 
             _newAgentID = 0;
             _nextGroupId = 0;
@@ -482,6 +493,7 @@ namespace Biocrowds.Core
         void Update()
         {
             if (!_isReady) return;
+            if (_runFinished) return;   // run encerrada por RUN_DURATION: congela
             if (SimPaused) return;
 
             // sim em passos fixos; SimSpeed controla quantos passos rodam por frame
@@ -492,6 +504,60 @@ namespace Biocrowds.Core
             {
                 _simAccumulator -= 1f;
                 StepSimulation();
+
+                // duração limitada: ao atingir RUN_DURATION encerra a run e gera relatórios
+                if (RUN_DURATION > 0f && _simTime >= RUN_DURATION)
+                {
+                    FinishRun();
+                    return;
+                }
+            }
+        }
+
+        // Encerra a run: congela a sim, fecha os CSVs e (se marcado) dispara os scripts Python.
+        private void FinishRun()
+        {
+            if (_runFinished) return;
+            _runFinished = true;
+
+            Debug.Log($"[World] RUN_DURATION ({RUN_DURATION:F1}s) atingido em t={_simTime:F2}s. Encerrando run.");
+
+            if (_metricsLogger != null)
+                _metricsLogger.EndSession();   // flush + fecha os CSVs (idempotente)
+
+            if (AUTO_GENERATE_REPORTS)
+                GenerateReports();
+        }
+
+        // Dispara os scripts Python que leem o run mais recente em Metrics/.
+        // Fire-and-forget: não bloqueia a thread da Unity.
+        private void GenerateReports()
+        {
+            string projectRoot = System.IO.Directory.GetParent(Application.dataPath).FullName;
+            string[] scripts = { "tools/plot_metrics.py", "tools/build_xlsx.py", "tools/plot_trajectories.py" };
+            foreach (string script in scripts)
+                RunPython(projectRoot, script);
+        }
+
+        private void RunPython(string projectRoot, string scriptRelPath)
+        {
+            try
+            {
+                var psi = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "python",
+                    Arguments = "\"" + scriptRelPath + "\"",
+                    WorkingDirectory = projectRoot,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                };
+                System.Diagnostics.Process.Start(psi);
+                Debug.Log($"[World] Relatório disparado: python {scriptRelPath}");
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"[World] Falha ao rodar '{scriptRelPath}': {e.Message}. " +
+                                 "Python no PATH? Gere manualmente via tools/report.bat.");
             }
         }
 

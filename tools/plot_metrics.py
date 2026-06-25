@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 """
-Gera graficos a partir dos CSVs de metricas do BioCrowds.
+Gera os graficos de metricas do BioCrowds (foco em 2 graficos).
 
-O MetricsLogger (Unity) grava dois CSVs por run na pasta Metrics/ da raiz do projeto:
-  *_summary.csv  -> time,numAgents,numGroups,numSolo,switchesInterval,totalSwitches,groupChangesEnabled
-  *_groups.csv   -> time,groupId,groupSize,cohesion,meanAffinity,affinityStdDev,meanTimeInGroup
+O MetricsLogger (Unity) grava CSVs por run na pasta Metrics/ da raiz do projeto:
+  summary.csv -> time,numAgents,numGroups,numSolo,switchesInterval,totalSwitches,...
+  groups.csv  -> time,groupId,groupSize,cohesion,meanAffinity,affinityStdDev,meanTimeInGroup
 
-Este script localiza o par mais recente (ou um run especifico), le com pandas e
-salva PNGs em Metrics/plots/<run>/ — graficos individuais + um dashboard combinado.
+Saida (em Metrics/<run>/plots/):
+  g1_grupos_solos.png -> X tempo, Y contagem (numGroups + numSolo)
+  g2_dispersao.png    -> X tempo, Y dispersao por grupo (coluna "cohesion" = dist. ao centroide)
+  dashboard.png       -> os dois lado a lado
 
 Uso:
-  python tools/plot_metrics.py                      # run mais recente em ./Metrics
-  python tools/plot_metrics.py --dir caminho/Metrics
+  python tools/plot_metrics.py
   python tools/plot_metrics.py --run biocrowds_metrics_20260622_104229
-  python tools/plot_metrics.py --out figuras/
-  python tools/plot_metrics.py --dpi 200            # resolucao dos PNGs
+  python tools/plot_metrics.py --dpi 200
 
 Requisitos: pandas, matplotlib  ->  pip install pandas matplotlib
 """
@@ -46,7 +46,6 @@ def color_for(gid):
 
 
 def setup_theme():
-    """Tema visual consistente para todos os graficos."""
     plt.rcParams.update({
         "figure.facecolor": "white",
         "axes.facecolor": "#fbfbfd",
@@ -82,156 +81,50 @@ def legend_groups(ax, n_groups):
     if n_groups > 6:
         ax.legend(loc="center left", bbox_to_anchor=(1.01, 0.5), ncol=1, title="Grupo")
     else:
-        ax.legend(loc="best", ncol=min(n_groups, 3), title="Grupo")
+        ax.legend(loc="best", ncol=min(max(n_groups, 1), 3), title="Grupo")
 
 
-# ----------------------------- SUMMARY ----------------------------------------
+# ----------------------------- GRAFICO 1 --------------------------------------
 
-def _plot_population(ax, df):
-    ax.plot(df["time"], df["numAgents"], drawstyle="steps-post",
-            color="#1f77b4", label="Agentes")
+def plot_grupos_solos(ax, df):
+    """X tempo, Y contagem: numero de grupos e de agentes solos."""
     ax.plot(df["time"], df["numGroups"], drawstyle="steps-post",
             color="#2ca02c", label="Grupos")
     ax.plot(df["time"], df["numSolo"], drawstyle="steps-post",
             color="#ff7f0e", label="Solos")
-    if "numStuck" in df.columns:
-        ax.plot(df["time"], df["numStuck"], drawstyle="steps-post",
-                color="#9467bd", label="Travados", linestyle="--")
-    style_axis(ax, "Populacao ao longo do tempo", "Tempo (s)", "Contagem", integer_y=True)
-    ax.legend(loc="best", ncol=4)
+    style_axis(ax, "Grupos e solos ao longo do tempo", "Tempo (s)", "Numero de grupos", integer_y=True)
+    ax.set_ylim(bottom=0)
+    ax.legend(loc="best", ncol=2)
 
 
-def _plot_switches(ax, df):
-    ax.plot(df["time"], df["totalSwitches"], drawstyle="steps-post",
-            color="#d62728", label="Acumuladas")
-    ax.fill_between(df["time"], df["totalSwitches"], step="post",
-                    color="#d62728", alpha=0.12)
-    if "switchesInterval" in df.columns:
-        ax.bar(df["time"], df["switchesInterval"], width=0.2,
-               color="#d62728", alpha=0.45, label="Por intervalo")
-    style_axis(ax, "Trocas de grupo", "Tempo (s)", "Trocas", integer_y=True)
-    # eixo sempre a partir de 0 (evita ticks negativos quando a serie e constante 0)
-    ymax = max(float(df["totalSwitches"].max()), 1.0)
-    ax.set_ylim(0, ymax * 1.15)
-    if ymax <= 1.0 and float(df["totalSwitches"].max()) == 0.0:
-        ax.text(0.5, 0.5, "nenhuma troca de grupo nesta run",
+# ----------------------------- GRAFICO 2 --------------------------------------
+
+def plot_dispersao(ax, df_groups):
+    """X tempo, Y dispersao por grupo (dist. media ao centroide; menor = mais coeso).
+
+    A coluna do CSV chama-se "cohesion" mas mede DISPERSAO: valor MAIOR =
+    grupo mais espalhado = MENOS coeso. Rotulamos como "Dispersao" para nao
+    inverter a leitura.
+    """
+    n = 0
+    if df_groups is not None and not df_groups.empty and "cohesion" in df_groups.columns:
+        for gid, sub in df_groups.groupby("groupId"):
+            ax.plot(sub["time"], sub["cohesion"], color=color_for(gid),
+                    marker="o", markersize=3, markevery=max(1, len(sub) // 25),
+                    label=f"G{int(gid)}")
+            n += 1
+    style_axis(ax, "Dispersao por grupo (menor = mais coeso)",
+               "Tempo (s)", "Dispersao (dist. media ao centroide)")
+    ax.set_ylim(bottom=0)
+    if n == 0:
+        ax.text(0.5, 0.5, "nenhum grupo formado nesta run",
                 transform=ax.transAxes, ha="center", va="center",
                 color="#999999", fontsize=11, style="italic")
-    ax.legend(loc="upper left")
-
-
-def shade_group_changes(ax, df):
-    """Sombreia faixas onde a dinamica de grupos esta ON (groupChangesEnabled=1)."""
-    if "groupChangesEnabled" not in df.columns:
-        return
-    if (df["groupChangesEnabled"] == 1).all():
-        return  # tudo ON: nao precisa sombrear
-    on = df["groupChangesEnabled"] == 1
-    ax.fill_between(df["time"], 0, 1, where=on, transform=ax.get_xaxis_transform(),
-                    color="#2ca02c", alpha=0.06, step="post")
-
-
-def plot_summary(df, out_dir, run, dpi):
-    fig, ax = plt.subplots(figsize=(10, 5))
-    _plot_population(ax, df)
-    shade_group_changes(ax, df)
-    fig.suptitle(run, fontsize=9, color="#888888", y=0.995)
-    save(fig, out_dir, "summary_populacao.png", dpi)
-
-    fig, ax = plt.subplots(figsize=(10, 5))
-    _plot_switches(ax, df)
-    fig.suptitle(run, fontsize=9, color="#888888", y=0.995)
-    save(fig, out_dir, "summary_trocas.png", dpi)
-
-
-# ----------------------------- GROUPS -----------------------------------------
-
-def _plot_group_lines(ax, df, col):
-    groups = list(df.groupby("groupId"))
-    for gid, sub in groups:
-        ax.plot(sub["time"], sub[col], color=color_for(gid),
-                marker="o", markersize=3, markevery=max(1, len(sub) // 25),
-                label=f"G{int(gid)}")
-    return len(groups)
-
-
-def _plot_affinity(ax, df):
-    """Afinidade media por grupo + banda sombreada de +-1 desvio padrao."""
-    groups = list(df.groupby("groupId"))
-    for gid, sub in groups:
-        c = color_for(gid)
-        ax.plot(sub["time"], sub["meanAffinity"], color=c, label=f"G{int(gid)}")
-        if "affinityStdDev" in sub.columns:
-            lo = sub["meanAffinity"] - sub["affinityStdDev"]
-            hi = sub["meanAffinity"] + sub["affinityStdDev"]
-            ax.fill_between(sub["time"], lo, hi, color=c, alpha=0.15)
-    ax.set_ylim(0, 1)
-    return len(groups)
-
-
-def plot_groups(df, out_dir, run, dpi):
-    if df.empty:
-        print("[aviso] groups.csv vazio (nenhum grupo formado na run); pulando graficos por grupo.")
-        return
-
-    # NOTA: a coluna do CSV chama-se "cohesion" mas mede DISPERSAO (dist. media ao
-    # centroide): valor MAIOR = grupo mais espalhado = MENOS coeso. Rotulamos como
-    # "Dispersao (menor = mais coeso)" para nao inverter a leitura.
-    especs = [
-        ("cohesion", "Dispersao (menor = mais coeso)", "groups_dispersao.png", False),
-        ("groupSize", "Tamanho do grupo", "groups_tamanho.png", True),
-        ("meanTimeInGroup", "Tempo medio no grupo (s)", "groups_tempo.png", False),
-    ]
-    for col, titulo, fname, int_y in especs:
-        if col not in df.columns:
-            continue
-        fig, ax = plt.subplots(figsize=(10, 5))
-        n = _plot_group_lines(ax, df, col)
-        style_axis(ax, f"{titulo} por grupo", "Tempo (s)", titulo, integer_y=int_y)
+    else:
         legend_groups(ax, n)
-        fig.suptitle(run, fontsize=9, color="#888888", y=0.995)
-        save(fig, out_dir, fname, dpi)
-
-    # afinidade tem tratamento especial (banda de desvio)
-    fig, ax = plt.subplots(figsize=(10, 5))
-    n = _plot_affinity(ax, df)
-    style_axis(ax, "Afinidade media +- desvio por grupo", "Tempo (s)", "Afinidade [0..1]")
-    legend_groups(ax, n)
-    fig.suptitle(run, fontsize=9, color="#888888", y=0.995)
-    save(fig, out_dir, "groups_afinidade.png", dpi)
 
 
-# ----------------------------- DASHBOARD --------------------------------------
-
-def plot_dashboard(df_summary, df_groups, out_dir, run, dpi):
-    """Painel unico 2x2 com a visao geral da run."""
-    fig, axes = plt.subplots(2, 2, figsize=(15, 9))
-    fig.suptitle(f"BioCrowds — Dashboard de Metricas\n{run}", fontsize=15, fontweight="bold")
-
-    _plot_population(axes[0, 0], df_summary)
-    shade_group_changes(axes[0, 0], df_summary)
-
-    _plot_switches(axes[0, 1], df_summary)
-
-    if df_groups is not None and not df_groups.empty and "cohesion" in df_groups.columns:
-        n = _plot_group_lines(axes[1, 0], df_groups, "cohesion")
-        style_axis(axes[1, 0], "Dispersao por grupo (menor = mais coeso)", "Tempo (s)", "Dist. media ao centroide")
-        legend_groups(axes[1, 0], n)
-    else:
-        axes[1, 0].set_axis_off()
-
-    if df_groups is not None and not df_groups.empty:
-        n = _plot_affinity(axes[1, 1], df_groups)
-        style_axis(axes[1, 1], "Afinidade +- desvio por grupo", "Tempo (s)", "Afinidade [0..1]")
-        legend_groups(axes[1, 1], n)
-    else:
-        axes[1, 1].set_axis_off()
-
-    fig.tight_layout(rect=(0, 0, 1, 0.96))
-    save(fig, out_dir, "dashboard.png", dpi)
-
-
-# ----------------------------- IO ---------------------------------------------
+# ----------------------------- IO / ORQUESTRACAO ------------------------------
 
 def default_metrics_dir():
     here = os.path.dirname(os.path.abspath(__file__))
@@ -247,8 +140,7 @@ def find_latest_run(metrics_dir):
             candidates.append(sub)
     if not candidates:
         return None
-    latest = max(candidates, key=os.path.getmtime)
-    return os.path.basename(latest)
+    return os.path.basename(max(candidates, key=os.path.getmtime))
 
 
 def save(fig, out_dir, fname, dpi):
@@ -259,10 +151,10 @@ def save(fig, out_dir, fname, dpi):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Gera graficos dos CSVs de metricas do BioCrowds.")
+    ap = argparse.ArgumentParser(description="Gera os 2 graficos de metricas do BioCrowds.")
     ap.add_argument("--dir", default=None, help="Pasta com os CSVs (default: ./Metrics na raiz do projeto).")
-    ap.add_argument("--run", default=None, help="Prefixo do run. Default: mais recente.")
-    ap.add_argument("--out", default=None, help="Pasta de saida dos PNGs (default: <Metrics>/plots/<run>).")
+    ap.add_argument("--run", default=None, help="Nome do subdiretorio do run. Default: mais recente.")
+    ap.add_argument("--out", default=None, help="Pasta de saida dos PNGs (default: <Metrics>/<run>/plots).")
     ap.add_argument("--dpi", type=int, default=150, help="Resolucao dos PNGs (default: 150).")
     args = ap.parse_args()
 
@@ -291,12 +183,25 @@ def main():
     df_summary = pd.read_csv(summary_path)
     df_groups = pd.read_csv(groups_path) if os.path.isfile(groups_path) else None
 
-    plot_summary(df_summary, out_dir, run, args.dpi)
-    if df_groups is not None:
-        plot_groups(df_groups, out_dir, run, args.dpi)
-    else:
-        print(f"[aviso] {groups_path} ausente; so graficos de summary gerados.")
-    plot_dashboard(df_summary, df_groups, out_dir, run, args.dpi)
+    # grafico 1
+    fig, ax = plt.subplots(figsize=(10, 5))
+    plot_grupos_solos(ax, df_summary)
+    fig.suptitle(run, fontsize=9, color="#888888", y=0.995)
+    save(fig, out_dir, "g1_grupos_solos.png", args.dpi)
+
+    # grafico 2
+    fig, ax = plt.subplots(figsize=(10, 5))
+    plot_dispersao(ax, df_groups)
+    fig.suptitle(run, fontsize=9, color="#888888", y=0.995)
+    save(fig, out_dir, "g2_dispersao.png", args.dpi)
+
+    # dashboard (os dois lado a lado)
+    fig, axes = plt.subplots(1, 2, figsize=(16, 5.5))
+    fig.suptitle(f"BioCrowds — Metricas\n{run}", fontsize=14, fontweight="bold")
+    plot_grupos_solos(axes[0], df_summary)
+    plot_dispersao(axes[1], df_groups)
+    fig.tight_layout(rect=(0, 0, 1, 0.93))
+    save(fig, out_dir, "dashboard.png", args.dpi)
 
     print("Concluido.")
 

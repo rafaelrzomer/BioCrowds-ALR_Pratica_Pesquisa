@@ -9,14 +9,11 @@ except ImportError as e:
     sys.exit(f"Dependencia faltando: {e}. Rode: pip install pandas xlsxwriter")
 
 
-# metricas de grupo: (coluna, titulo da aba/grafico, formato numerico)
-# "cohesion" no CSV mede DISPERSAO (dist. media ao centroide): maior = menos coeso.
-# Rotulado como "Dispersao" para nao inverter a leitura.
+# metricas de grupo plotadas: (coluna, titulo da aba/grafico, formato numerico)
+# Foco em 1 grafico de grupo: "cohesion" no CSV mede DISPERSAO (dist. media ao
+# centroide): maior = menos coeso. Rotulado como "Dispersao" para nao inverter a leitura.
 GROUP_METRICS = [
     ("cohesion", "Dispersao", "0.0000"),
-    ("meanAffinity", "Afinidade", "0.0000"),
-    ("groupSize", "Tamanho", "0"),
-    ("meanTimeInGroup", "TempoGrupo", "0.0"),
 ]
 
 
@@ -118,15 +115,10 @@ def build(run_dir, out_path):
     n_rows, n_cols = write_table(ws, summary, sum_fmts, header_fmt, start_row=table_row)
 
     cols = {name: i for i, name in enumerate(summary.columns)}
-    # grafico 1: populacao
-    series_pop = [(cols[c], c) for c in ("numAgents", "numGroups", "numSolo", "numStuck") if c in cols]
-    add_line_chart(wb, ws, "Resumo", "Populacao ao longo do tempo", "Tempo (s)", "Contagem",
-                   cols["time"], series_pop, n_rows, table_row, anchor="J3", y_min=0)
-    # grafico 2: trocas (eixo a partir de 0 — fica reto em 0 se nao houver trocas)
-    if "totalSwitches" in cols:
-        add_line_chart(wb, ws, "Resumo", "Trocas de grupo (acumuladas)", "Tempo (s)", "Trocas",
-                       cols["time"], [(cols["totalSwitches"], "totalSwitches")],
-                       n_rows, table_row, anchor="J24", y_min=0)
+    # grafico 1: grupos e solos ao longo do tempo (X tempo, Y numero de grupos)
+    series_gs = [(cols[c], c) for c in ("numGroups", "numSolo") if c in cols]
+    add_line_chart(wb, ws, "Resumo", "Grupos e solos ao longo do tempo", "Tempo (s)", "Numero de grupos",
+                   cols["time"], series_gs, n_rows, table_row, anchor="J3", y_min=0)
 
     # ---- KPIs com formulas ----
     kpi_row = table_row + n_rows + 3
