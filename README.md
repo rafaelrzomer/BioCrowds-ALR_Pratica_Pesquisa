@@ -12,7 +12,7 @@ Resumo por release. **Detalhes completos em [`CHANGELOG.md`](CHANGELOG.md).** Ta
 
 | Tag | Data | Resumo | Commit |
 |---|---|---|---|
-| `v0.10.0` | 25/06/2026 | **Métricas:** HUD runtime (`M`), CSV por run (+cópias pt-BR `*_excel.csv` e `config.csv`), tempo médio em grupo, jam (`numStuck`), dispersão, flag `ALLOW_GROUP_CHANGES`, seed reproduzível. **Tooling Python:** gráficos (`plot_metrics`), relatório `.xlsx` (`build_xlsx`), comparador de runs (`compare_runs`), mapas de densidade/trajetória (`plot_trajectories`), `report.bat`. **Runtime:** inspetor de agente (`I`), controle de tempo (`P`/`[`/`]`/`\`). **Correções:** NavMesh NRE, afundamento (lock XZ), flicker (RNG por-frame). | `b590c13`, `a11dac4`, `f447a2e`, `5877ac6`, `194c44c`, `8307b8b` |
+| `v0.10.0` | 23–25/06/2026 | **Métricas:** HUD runtime (`M`), CSV por run organizados em `csv/` (+cópias pt-BR `*_excel.csv` e `config.csv`), tempo médio em grupo, jam (`numStuck`), dispersão, flag `ALLOW_GROUP_CHANGES`, seed reproduzível. **Duração de run:** `RUN_DURATION` encerra a sim e auto-gera relatórios. **Tooling Python:** gráficos focados grupos/solos + dispersão (`plot_metrics`), relatório `.xlsx` (`build_xlsx`), comparador de runs (`compare_runs`), mapas de densidade (suavizável) /trajetória (`plot_trajectories`), `report.bat`. **Runtime:** inspetor de agente (`I`), controle de tempo (`P`/`[`/`]`/`\`). **Correções:** NavMesh NRE, afundamento (lock XZ), flicker (RNG por-frame), redirecionamento no `report.bat`. | `b590c13`, `a11dac4`, `f447a2e`, `5877ac6`, `194c44c`, `8307b8b`, `2b749b5`, `63c3255` |
 | `v0.9.0` | 28/05/2026 | Diamante 3D como marcador do líder; remoção de brilho/escala do corpo; `SpawnNewAgent` legado alinhado. | _pendente_ |
 | `v0.8.0` | 28/05/2026 | `Debug.Break` removido; grupos ordenados no Inspector; remoção segura de agentes; marcador do líder configurável. | `400b8b9` |
 | `v0.7.0` | 22/05/2026 | `Group` + `GroupManager`; sync de goals; tenure de líder; affinity por `SpawnArea`; diamante; tecla `G`. | `7a3b226` |
@@ -53,7 +53,7 @@ Assets/
 │   ├── SpawnArea.cs             # Área de spawn com groupId + affinityMin/Max
 │   ├── SimulationConfiguration.cs
 │   ├── GroupColorManager.cs     # Singleton de cores por grupo
-│   ├── MetricsLogger.cs         # Grava CSV (groups + summary) na raiz do projeto
+│   ├── MetricsLogger.cs         # Grava CSV por run em Metrics/<run>/csv/
 │   ├── MetricsHUD.cs            # HUD runtime de métricas (OnGUI, tecla M)
 │   ├── AgentInspectorHUD.cs     # Inspetor por-agente: clique p/ ver/editar grupo e atributos (tecla I)
 │   ├── TimeController.cs        # Controle de tempo: pausa/acelera a sim (teclas P, [, ], \)
@@ -66,11 +66,11 @@ Assets/
 └── Scenes/                      # Cena do museu
 
 tools/
-├── plot_metrics.py             # Gera gráficos (PNG) dos CSVs de métricas (pandas+matplotlib)
-├── build_xlsx.py               # Gera relatório .xlsx (Excel) com gráficos nativos, tabelas e fórmulas (pandas+xlsxwriter)
+├── plot_metrics.py             # 2 gráficos PNG: grupos/solos + dispersão por grupo, + dashboard (pandas+matplotlib)
+├── build_xlsx.py               # Relatório .xlsx (Excel) com gráficos nativos, tabelas e fórmulas (pandas+xlsxwriter)
 ├── compare_runs.py             # Sobrepõe uma métrica (ex.: numStuck, numGroups) de várias runs num gráfico
-├── plot_trajectories.py        # Mapa de trajetórias + mapa de densidade (heatmap) do positions.csv
-└── report.bat                  # Windows: duplo-clique → roda build_xlsx + plot_metrics no run mais recente
+├── plot_trajectories.py        # Mapa de trajetórias + densidade (heatmap; --smooth/--ask-smooth) do positions.csv
+└── report.bat                  # Windows: duplo-clique → roda build_xlsx + plot_metrics + plot_trajectories no run mais recente
 ```
 
 ---
@@ -95,9 +95,16 @@ A **Game View** precisa ter foco do teclado.
 
 ## Métricas e Relatórios
 
-Cada run grava um diretório `Metrics/<prefix>_<timestamp>/` na **raiz do projeto** (só no Editor; em build vai pra pasta do `.exe`). A pasta `Metrics/` é ignorada pelo git.
+Cada run grava um diretório `Metrics/<prefix>_<timestamp>/` na **raiz do projeto** (só no Editor; em build vai pra pasta do `.exe`). A pasta `Metrics/` é ignorada pelo git. Estrutura da run:
 
-| Arquivo | Conteúdo |
+```
+Metrics/<run>/
+├── csv/             # todos os CSVs (escritos pelo MetricsLogger)
+├── plots/           # PNGs (gerados pelos scripts Python)
+└── relatorio.xlsx   # relatório Excel (build_xlsx.py)
+```
+
+| Arquivo (em `csv/`) | Conteúdo |
 |---|---|
 | `summary.csv` | 1 linha por amostra: tempo, nº de agentes/grupos/solos, trocas, jam (`numStuck`), flag `ALLOW_GROUP_CHANGES` |
 | `groups.csv` | 1 linha por grupo por amostra: tamanho, dispersão (dist. ao centróide), afinidade média/desvio, tempo em grupo |
@@ -107,6 +114,10 @@ Cada run grava um diretório `Metrics/<prefix>_<timestamp>/` na **raiz do projet
 
 > CSVs padrão (`,` / `.`) são para pandas e os scripts. As cópias `*_excel.csv` (`;` / `,`) abrem direto no Excel pt-BR. O CSV padrão também abre no Excel via **Dados → De Texto/CSV** (delimitador vírgula, local Inglês-EUA).
 
+### Duração de run automática
+
+No Inspector do `World` (header *Run Control*): defina **`RUN_DURATION`** (segundos de simulação; `0` = ilimitado). Ao atingir o tempo, a sim congela, os CSVs são fechados e — se **`AUTO_GENERATE_REPORTS`** estiver marcado — os scripts Python rodam sozinhos (gráficos + `.xlsx`). Requer Python no PATH; senão, gere manualmente (abaixo).
+
 ### Gerar relatórios
 
 Requer Python: `pip install pandas matplotlib xlsxwriter`.
@@ -114,9 +125,9 @@ Requer Python: `pip install pandas matplotlib xlsxwriter`.
 - **Windows (1 clique):** duplo-clique em **`tools/report.bat`** → gera tudo do run mais recente.
 - **Manual** (run mais recente por padrão; ou `--run <pasta>`):
   ```bash
-  python tools/build_xlsx.py         # relatorio.xlsx: tabelas + gráficos nativos do Excel + fórmulas
-  python tools/plot_metrics.py       # PNGs por métrica + dashboard.png
-  python tools/plot_trajectories.py  # mapa de trajetórias + mapa de densidade (heatmap)
+  python tools/build_xlsx.py            # relatorio.xlsx: tabelas + gráficos nativos do Excel + fórmulas
+  python tools/plot_metrics.py          # 2 PNGs (grupos/solos + dispersão) + dashboard.png
+  python tools/plot_trajectories.py     # mapa de trajetórias + densidade  (--smooth p/ heatmap suave)
   python tools/compare_runs.py --metric numStuck --last 3   # compara N runs numa métrica
   ```
 
@@ -129,6 +140,8 @@ Saídas: `relatorio.xlsx` em `Metrics/<run>/`, PNGs em `Metrics/<run>/plots/`, c
 | Campo | Default | Função |
 |---|---|---|
 | `SIMULATION_TIME_STEP` | 0.02 | Passo fixo da simulação |
+| `RUN_DURATION` | 0 | Duração da run em segundos de simulação (`0` = ilimitado). Ao atingir, encerra e gera relatórios |
+| `AUTO_GENERATE_REPORTS` | true | Ao fim da run, dispara os scripts Python (gráficos + `.xlsx`). Requer Python no PATH |
 | `AGENT_RADIUS` | 1.0 | Raio do agente |
 | `AUXIN_RADIUS` | 0.1 | Raio do marcador |
 | `AUXIN_DENSITY` | 0.5 | Densidade de marcadores |
@@ -219,7 +232,7 @@ Histórico detalhado por release em [`CHANGELOG.md`](CHANGELOG.md). Resumo das v
 | 🚧 | Sociograma | Cena `Sociograma.unity` criada (merge da `main`). Falta reproduzir o sociograma do trabalho original (Musse & Thalmann) para os resultados do artigo. |
 | 📊 | Estrutura do trabalho/apresentação final | 8ª reunião: Introdução → Trabalhos relacionados → Modelo (o que foi adicionado, parâmetros novos, resultados) → Métricas dos experimentos. |
 | 📊 | Bateria de testes de variação | Caderno 14/05/2026 — *"dois grupos com muita afinidade e dois grupos com afinidades muito distantes, testar variação de comportamentos"*. |
-| ✅ | Métricas, gráficos, `.xlsx`, mapas, HUD, inspetor, controle de tempo, seed | **Entregue** — uso na seção [Métricas e Relatórios](#métricas-e-relatórios) e [Controles](#controles-da-simulação); histórico no [CHANGELOG](CHANGELOG.md). |
+| ✅ | Métricas, gráficos, `.xlsx`, mapas, HUD, inspetor, controle de tempo, **duração de run**, seed | **Entregue** — uso na seção [Métricas e Relatórios](#métricas-e-relatórios) e [Controles](#controles-da-simulação); histórico no [CHANGELOG](CHANGELOG.md). |
 
 ### 🔬 Longo prazo — pesquisa e extensões
 

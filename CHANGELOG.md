@@ -8,7 +8,7 @@ Convenções: `valor antigo ⇒ valor novo` para ajustes numéricos. 🆕 novo �
 
 ---
 
-## Patch v0.10.0 — 23/06/2026 · _pendente de tag_
+## Patch v0.10.0 — 23–25/06/2026 · _pendente de tag_
 
 ### Métricas
 - 🆕 `MetricsHUD.cs` (OnGUI): HUD runtime no canto da tela. Tecla `M` liga/desliga. Sem Canvas/prefab — basta o componente num GameObject da cena.
@@ -29,6 +29,13 @@ Convenções: `valor antigo ⇒ valor novo` para ajustes numéricos. 🆕 novo �
 - 🆕 Mapas de densidade e trajetórias: `MetricsLogger` grava `positions.csv` (time, agentId, x, z, groupId) por eval cycle (flag `LOG_POSITIONS`); `tools/plot_trajectories.py` (pandas+matplotlib) gera mapa de trajetórias (cor = grupo) e heatmap de densidade em `Metrics/<run>/plots/`. Atende Caderno (pontos de densidade/caminhos) e WebCrowds.
 - 🔧 `tools/report.bat`: agora também roda `plot_trajectories.py`.
 - 🔧 Gráficos: eixo de "Trocas" a partir de 0 (com nota quando não há trocas); "coesão" rotulada como **"Dispersão (menor = mais coeso)"** (coluna CSV segue `cohesion`).
+
+### Duração de run, organização e gráficos focados (25/06/2026 · `2b749b5`, `63c3255`)
+- 🆕 **`World.RUN_DURATION`** (Inspector, header *Run Control*): duração da run em **segundos de simulação** (0 = ilimitado). Ao atingir, `FinishRun()` congela a sim (`_runFinished`), fecha os CSVs (`EndSession`) e — se `AUTO_GENERATE_REPORTS` — dispara os scripts Python (gráficos + xlsx) via `System.Diagnostics.Process` (fire-and-forget, não trava a Unity; requer Python no PATH). Reset no `Awake` (tecla `R` recomeça).
+- 🔧 **Organização da pasta da run**: `MetricsLogger` grava todos os CSVs num subdiretório **`csv/`**. A raiz da run fica só com `csv/`, `plots/` e `relatorio.xlsx`. Os 3 scripts Python leem de `csv/` com **fallback** para a raiz (runs antigas não quebram).
+- 🔧 **Gráficos focados** (decisão de reunião): `plot_metrics.py` reduzido a **2 gráficos** — *(1) Grupos e solos × tempo* e *(2) Dispersão por grupo × tempo* — + `dashboard.png` 1×2. `build_xlsx.py`: aba **Resumo** plota grupos+solos; mantida aba **Dispersao**; removidas abas Afinidade/Tamanho/Tempo e o gráfico de Trocas.
+- 🆕 Mapa de densidade **suavizado** opcional: `plot_trajectories.py --smooth` (histograma 2D + `imshow` interpolação gaussiana = gradiente contínuo, sem dependência nova) e **`--ask-smooth`** (pergunta interativa só quando a run é grande, ≥ `--big-threshold`, default 5000 amostras). `report.bat` chama com `--ask-smooth`.
+- 🐛 `report.bat`: linha de echo final com `<...>` era lida pelo cmd como redirecionamento de I/O → erro "O sistema não pode encontrar o arquivo especificado" (cosmético, após gerar tudo). Trocado por `[...]`.
 
 > ℹ️ Setup da HUD: adicionar o componente `MetricsHUD` a um GameObject da `Museu.unity` (campo `_world` via Inspector ou auto-find).
 
