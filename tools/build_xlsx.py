@@ -10,10 +10,12 @@ except ImportError as e:
 
 
 # metricas de grupo plotadas: (coluna, titulo da aba/grafico, formato numerico)
-# Foco em 1 grafico de grupo: "cohesion" no CSV mede DISPERSAO (dist. media ao
-# centroide): maior = menos coeso. Rotulado como "Dispersao" para nao inverter a leitura.
+# "cohesion" no CSV mede DISPERSAO (dist. media ao centroide): maior = menos coeso.
+# Ela cresce com o tamanho do grupo (~sqrt(tam.)); "cohesionNorm" = cohesion/sqrt(tam.)
+# remove esse efeito (plana = coesao por membro estavel). Ver investigacao de 25/06/2026.
 GROUP_METRICS = [
     ("cohesion", "Dispersao", "0.0000"),
+    ("cohesionNorm", "DispersaoNorm", "0.0000"),
 ]
 
 
@@ -93,6 +95,11 @@ def build(run_dir, out_path):
     summary = pd.read_csv(os.path.join(cdir, "summary.csv"))
     groups_path = os.path.join(cdir, "groups.csv")
     groups = pd.read_csv(groups_path) if os.path.isfile(groups_path) else pd.DataFrame()
+
+    # compat runs antigas: cohesionNorm so existe em runs novas; calcula se faltar.
+    if not groups.empty and "cohesionNorm" not in groups.columns \
+            and {"cohesion", "groupSize"}.issubset(groups.columns):
+        groups["cohesionNorm"] = groups["cohesion"] / (groups["groupSize"].clip(lower=1) ** 0.5)
 
     wb_engine = pd.ExcelWriter(out_path, engine="xlsxwriter")
     wb = wb_engine.book

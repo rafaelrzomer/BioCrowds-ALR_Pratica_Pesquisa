@@ -7,9 +7,15 @@ O MetricsLogger (Unity) grava CSVs por run na pasta Metrics/ da raiz do projeto:
   groups.csv  -> time,groupId,groupSize,cohesion,meanAffinity,affinityStdDev,meanTimeInGroup
 
 Saida (em Metrics/<run>/plots/):
-  g1_grupos_solos.png -> X tempo, Y contagem (numGroups + numSolo)
-  g2_dispersao.png    -> X tempo, Y dispersao por grupo (coluna "cohesion" = dist. ao centroide)
-  dashboard.png       -> os dois lado a lado
+  g1_grupos_solos.png        -> X tempo, Y contagem (numGroups + numSolo)
+  g2_dispersao.png           -> dispersao crua por grupo (cohesion) + tamanho sobreposto
+  g3_dispersao_normalizada.png -> cohesionNorm = cohesion/sqrt(tam.) (plana = coesao estavel)
+  dashboard.png              -> os tres lado a lado
+
+Por que g2 + g3: a dispersao crua (dist. media ao centroide) CRESCE com o tamanho do
+grupo (~sqrt(tam.)). Quando um grupo engorda, a linha sobe mesmo sem perder coesao.
+A g3 divide por sqrt(tam.) e remove esse efeito: se ficar plana, a coesao por membro
+e estavel e a subida da g2 era so crescimento. Ver investigacao de 25/06/2026.
 
 Uso:
   python tools/plot_metrics.py
@@ -99,22 +105,68 @@ def plot_grupos_solos(ax, df):
 
 # ----------------------------- GRAFICO 2 --------------------------------------
 
-def plot_dispersao(ax, df_groups):
-    """X tempo, Y dispersao por grupo (dist. media ao centroide; menor = mais coeso).
+def ensure_cohnorm(df):
+    """Garante a coluna cohesionNorm. Runs novas ja gravam; runs antigas calculamos
+    aqui (cohesion / sqrt(tamanho)). Sem numpy: pandas faz o ** 0.5 elemento a elemento."""
+    if df is None or df.empty:
+        return df
+    if "cohesionNorm" not in df.columns and {"cohesion", "groupSize"}.issubset(df.columns):
+        df = df.copy()
+        df["cohesionNorm"] = df["cohesion"] / (df["groupSize"].clip(lower=1) ** 0.5)
+    return df
 
-    A coluna do CSV chama-se "cohesion" mas mede DISPERSAO: valor MAIOR =
-    grupo mais espalhado = MENOS coeso. Rotulamos como "Dispersao" para nao
-    inverter a leitura.
+
+def plot_dispersao(ax, df_groups):
+    """X tempo, Y dispersao crua por grupo (dist. media ao centroide; menor = mais coeso),
+    com o TAMANHO do grupo sobreposto (tracejado, eixo direito).
+
+    A coluna "cohesion" mede DISPERSAO: valor MAIOR = grupo mais espalhado = MENOS coeso.
+    Ela cresce com o tamanho do grupo (~sqrt(tam.)); por isso plotamos o tamanho junto:
+    se as duas linhas sobem juntas, a subida da dispersao e artefato de crescimento.
     """
     n = 0
     if df_groups is not None and not df_groups.empty and "cohesion" in df_groups.columns:
+        ax2 = ax.twinx()
         for gid, sub in df_groups.groupby("groupId"):
-            ax.plot(sub["time"], sub["cohesion"], color=color_for(gid),
+            c = color_for(gid)
+            ax.plot(sub["time"], sub["cohesion"], color=c,
+                    marker="o", markersize=3, markevery=max(1, len(sub) // 25),
+                    label=f"G{int(gid)}")
+            if "groupSize" in sub.columns:
+                ax2.plot(sub["time"], sub["groupSize"], color=c,
+                         linestyle="--", linewidth=1.0, alpha=0.45)
+            n += 1
+        ax2.set_ylabel("Tamanho do grupo (tracejado)")
+        ax2.set_ylim(bottom=0)
+        ax2.yaxis.set_major_locator(MaxNLocator(integer=True))
+        ax2.spines["top"].set_visible(False)
+    style_axis(ax, "Dispersao crua + tamanho (sobem juntos = artefato de tamanho)",
+               "Tempo (s)", "Dispersao (dist. media ao centroide)")
+    ax.set_ylim(bottom=0)
+    if n == 0:
+        ax.text(0.5, 0.5, "nenhum grupo formado nesta run",
+                transform=ax.transAxes, ha="center", va="center",
+                color="#999999", fontsize=11, style="italic")
+    else:
+        legend_groups(ax, n)
+
+
+def plot_dispersao_norm(ax, df_groups):
+    """X tempo, Y dispersao NORMALIZADA por grupo: cohesion / sqrt(tamanho).
+
+    Remove o efeito do crescimento (a dispersao crua escala ~sqrt(tam.)). Linha plana
+    ou em queda => coesao por membro estavel/melhorando; subida => coesao real piorando.
+    """
+    n = 0
+    df = ensure_cohnorm(df_groups)
+    if df is not None and not df.empty and "cohesionNorm" in df.columns:
+        for gid, sub in df.groupby("groupId"):
+            ax.plot(sub["time"], sub["cohesionNorm"], color=color_for(gid),
                     marker="o", markersize=3, markevery=max(1, len(sub) // 25),
                     label=f"G{int(gid)}")
             n += 1
-    style_axis(ax, "Dispersao por grupo (menor = mais coeso)",
-               "Tempo (s)", "Dispersao (dist. media ao centroide)")
+    style_axis(ax, "Dispersao normalizada (/raiz(tam.)) — plana = coesao estavel",
+               "Tempo (s)", "Dispersao / sqrt(tamanho)")
     ax.set_ylim(bottom=0)
     if n == 0:
         ax.text(0.5, 0.5, "nenhum grupo formado nesta run",
@@ -189,6 +241,7 @@ def main():
 
     df_summary = pd.read_csv(summary_path)
     df_groups = pd.read_csv(groups_path) if os.path.isfile(groups_path) else None
+    df_groups = ensure_cohnorm(df_groups)
 
     # grafico 1
     fig, ax = plt.subplots(figsize=(10, 5))
@@ -196,17 +249,24 @@ def main():
     fig.suptitle(run, fontsize=9, color="#888888", y=0.995)
     save(fig, out_dir, "g1_grupos_solos.png", args.dpi)
 
-    # grafico 2
+    # grafico 2 (dispersao crua + tamanho)
     fig, ax = plt.subplots(figsize=(10, 5))
     plot_dispersao(ax, df_groups)
     fig.suptitle(run, fontsize=9, color="#888888", y=0.995)
     save(fig, out_dir, "g2_dispersao.png", args.dpi)
 
-    # dashboard (os dois lado a lado)
-    fig, axes = plt.subplots(1, 2, figsize=(16, 5.5))
+    # grafico 3 (dispersao normalizada)
+    fig, ax = plt.subplots(figsize=(10, 5))
+    plot_dispersao_norm(ax, df_groups)
+    fig.suptitle(run, fontsize=9, color="#888888", y=0.995)
+    save(fig, out_dir, "g3_dispersao_normalizada.png", args.dpi)
+
+    # dashboard (os tres lado a lado)
+    fig, axes = plt.subplots(1, 3, figsize=(22, 5.5))
     fig.suptitle(f"BioCrowds — Metricas\n{run}", fontsize=14, fontweight="bold")
     plot_grupos_solos(axes[0], df_summary)
     plot_dispersao(axes[1], df_groups)
+    plot_dispersao_norm(axes[2], df_groups)
     fig.tight_layout(rect=(0, 0, 1, 0.93))
     save(fig, out_dir, "dashboard.png", args.dpi)
 

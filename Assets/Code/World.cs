@@ -179,7 +179,8 @@ namespace Biocrowds.Core
         {
             public int groupId;
             public int size;
-            public float cohesion;        // mean distance to centroid (XZ)
+            public float cohesion;        // mean distance to centroid (XZ) — grows with group size
+            public float cohesionNorm;    // cohesion / sqrt(size) — size-independent dispersion
             public float meanAffinity;
             public float affinityStdDev;
             public float meanTimeInGroup; // mean seconds members have spent in this group
@@ -1047,6 +1048,10 @@ namespace Biocrowds.Core
                     distSum += d.magnitude;
                 }
                 float cohesion = distSum / count;
+                // dispersão normalizada: cohesion cresce ~√(tamanho) (o raio de N agentes
+                // empacotados escala com √N), então dividir por √count remove o efeito de
+                // crescimento → linha plana = coesão por membro estável. Ver investigação 25/06.
+                float cohesionNorm = count > 0 ? cohesion / Mathf.Sqrt(count) : 0f;
 
                 float meanAff = affSum / count;
                 // variância = E[x²] - E[x]²; clamp a 0 para evitar raiz de valor negativo por erro de ponto flutuante
@@ -1060,13 +1065,14 @@ namespace Biocrowds.Core
                     groupId = group.Key,
                     size = count,
                     cohesion = cohesion,
+                    cohesionNorm = cohesionNorm,
                     meanAffinity = meanAff,
                     affinityStdDev = affStdDev,
                     meanTimeInGroup = meanTimeInGroup
                 });
 
                 if (logCsv)
-                    _metricsLogger.WriteGroupSample(_simTime, group.Key, count, cohesion, meanAff, affStdDev, meanTimeInGroup);
+                    _metricsLogger.WriteGroupSample(_simTime, group.Key, count, cohesion, cohesionNorm, meanAff, affStdDev, meanTimeInGroup);
             }
 
             int numSolo = 0;

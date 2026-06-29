@@ -65,7 +65,7 @@ public class MetricsLogger : MonoBehaviour
         _runDir = runDir;
         _csvDir = csvDir;
 
-        const string groupsHeader = "time,groupId,groupSize,cohesion,meanAffinity,affinityStdDev,meanTimeInGroup";
+        const string groupsHeader = "time,groupId,groupSize,cohesion,cohesionNorm,meanAffinity,affinityStdDev,meanTimeInGroup";
         const string summaryHeader = "time,numAgents,numGroups,numSolo,switchesInterval,totalSwitches,groupChangesEnabled,numStuck";
 
         _groupsWriter = new StreamWriter(Path.Combine(csvDir, "groups.csv"), false);
@@ -92,12 +92,12 @@ public class MetricsLogger : MonoBehaviour
         Debug.Log($"[Metrics] run dir:\n  {runDir}");
     }
 
-    public void WriteGroupSample(float time, int groupId, int groupSize, float cohesion, float meanAffinity, float affinityStdDev, float meanTimeInGroup)
+    public void WriteGroupSample(float time, int groupId, int groupSize, float cohesion, float cohesionNorm, float meanAffinity, float affinityStdDev, float meanTimeInGroup)
     {
         if (!_open) return;
         string line = string.Format(CultureInfo.InvariantCulture,
-            "{0:F3},{1},{2},{3:F4},{4:F4},{5:F4},{6:F3}",
-            time, groupId, groupSize, cohesion, meanAffinity, affinityStdDev, meanTimeInGroup);
+            "{0:F3},{1},{2},{3:F4},{4:F4},{5:F4},{6:F4},{7:F3}",
+            time, groupId, groupSize, cohesion, cohesionNorm, meanAffinity, affinityStdDev, meanTimeInGroup);
         WriteBoth(_groupsWriter, _groupsWriterXl, line);
     }
 
