@@ -65,4 +65,6 @@ crashlytics-build.properties
 # Metrics CSVs (gerados em runtime na raiz do projeto pelo MetricsLogger)
 /[Mm]etrics/
 
+*.mp4
+
 
